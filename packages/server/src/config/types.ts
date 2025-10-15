@@ -200,6 +200,7 @@ export interface MedplumFissionConfig {
 }
 
 export interface MedplumShardConfig {
+  id: string;
   database: MedplumDatabaseConfig;
   readonlyDatabase?: MedplumDatabaseConfig;
   redis: MedplumRedisConfig;
