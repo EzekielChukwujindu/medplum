@@ -12,7 +12,6 @@ import type {
 } from '@medplum/fhirtypes';
 import type { Pool, PoolClient } from 'pg';
 import { getAuthenticatedContext } from '../../../context';
-import { getSystemRepo } from '../../repo';
 import { Column, Condition, Conjunction, Disjunction, SelectQuery, SqlFunction, Union } from '../../sql';
 
 export const parentProperty = 'http://hl7.org/fhir/concept-properties#parent';
@@ -32,7 +31,7 @@ export async function findTerminologyResource<T extends TerminologyResource>(
   if (!url) {
     throw new OperationOutcomeError(badRequest(`${resourceType} not specified`));
   }
-  const { repo, project } = getAuthenticatedContext();
+  const { repo, project, systemRepo } = getAuthenticatedContext();
 
   const versionDelim = url.lastIndexOf('|');
   if (versionDelim > 0) {
@@ -59,7 +58,7 @@ export async function findTerminologyResource<T extends TerminologyResource>(
     throw new OperationOutcomeError(badRequest(`${resourceType} ${url} not found`));
   } else if (results.length === 1 || !sameTerminologyResourceVersion(results[0], results[1])) {
     if (options?.ownProjectOnly) {
-      const fullResource = await getSystemRepo().readReference(createReference(results[0]));
+      const fullResource = await systemRepo.readReference(createReference(results[0]));
       if (fullResource.meta?.project === repo.currentProject()?.id) {
         return results[0];
       }
@@ -71,7 +70,7 @@ export async function findTerminologyResource<T extends TerminologyResource>(
     for (const resource of results) {
       resourceReferences.push(createReference(resource));
     }
-    const resources = await getSystemRepo().readReferences(resourceReferences);
+    const resources = await systemRepo.readReferences(resourceReferences);
     const projectResource = resources.find((r) => r instanceof Error || r.meta?.project === project.id);
     if (projectResource instanceof Error) {
       throw projectResource;

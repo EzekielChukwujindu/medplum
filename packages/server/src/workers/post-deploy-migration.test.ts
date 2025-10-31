@@ -7,7 +7,7 @@ import { closeWorkers, initWorkers } from '.';
 import { initAppServices, shutdownApp } from '../app';
 import { loadTestConfig } from '../config/loader';
 import type { MedplumServerConfig } from '../config/types';
-import { getSystemRepo } from '../fhir/repo';
+import { getGlobalSystemRepo } from '../fhir/repo';
 import { globalLogger } from '../logger';
 import type {
   CustomPostDeployMigration,
@@ -38,6 +38,7 @@ jest.mock('../server-registry');
 describe('Post-Deploy Migration Worker', () => {
   let config: MedplumServerConfig;
   let mockRegisteredServers: ServerRegistryInfo[];
+  const systemRepo = getGlobalSystemRepo();
 
   beforeAll(async () => {
     config = await loadTestConfig();
@@ -107,7 +108,7 @@ describe('Post-Deploy Migration Worker', () => {
     });
 
     await withTestContext(async () => {
-      const asyncJob = await getSystemRepo().createResource<AsyncJob>({
+      const asyncJob = await systemRepo.createResource<AsyncJob>({
         resourceType: 'AsyncJob',
         status: 'accepted',
         dataVersion: 123,
@@ -136,7 +137,7 @@ describe('Post-Deploy Migration Worker', () => {
   ])('Job processor skips job if AsyncJob %s', async (_, jobProps, shouldThrow) => {
     const getPostDeployMigrationSpy = jest.spyOn(migrationUtils, 'getPostDeployMigration');
 
-    const mockAsyncJob = await getSystemRepo().createResource<AsyncJob>({
+    const mockAsyncJob = await systemRepo.createResource<AsyncJob>({
       resourceType: 'AsyncJob',
       status: 'accepted',
       dataVersion: 456,
@@ -184,7 +185,6 @@ describe('Post-Deploy Migration Worker', () => {
         results.push({ name: 'some-action', durationMs: 10 });
       });
 
-    const systemRepo = getSystemRepo();
     const mockAsyncJob = await systemRepo.createResource<AsyncJob>({
       resourceType: 'AsyncJob',
       status: 'accepted',
@@ -247,7 +247,6 @@ describe('Post-Deploy Migration Worker', () => {
       .spyOn(migrationUtils, 'getPostDeployMigration')
       .mockReturnValue(mockCustomMigration);
 
-    const systemRepo = getSystemRepo();
     const mockAsyncJob = await systemRepo.createResource<AsyncJob>({
       resourceType: 'AsyncJob',
       status: 'accepted',
@@ -291,7 +290,7 @@ describe('Post-Deploy Migration Worker', () => {
 
       const queue = getQueueFromRegistryOrThrow();
 
-      const mockAsyncJob = await getSystemRepo().createResource<AsyncJob>({
+      const mockAsyncJob = await systemRepo.createResource<AsyncJob>({
         resourceType: 'AsyncJob',
         status: 'accepted',
         dataVersion: 456,
@@ -362,7 +361,7 @@ describe('Post-Deploy Migration Worker', () => {
   test('Job processor delays job when migration definition is not found', async () => {
     await initWorkers(config);
 
-    const mockAsyncJob = await getSystemRepo().createResource<AsyncJob>({
+    const mockAsyncJob = await systemRepo.createResource<AsyncJob>({
       resourceType: 'AsyncJob',
       status: 'accepted',
       dataVersion: 456,
@@ -413,7 +412,7 @@ describe('Post-Deploy Migration Worker', () => {
     jest.spyOn(versionModule, 'getServerVersion').mockImplementation(() => mockServerVersion);
     await initWorkers(config);
 
-    const mockAsyncJob = await getSystemRepo().createResource<AsyncJob>({
+    const mockAsyncJob = await systemRepo.createResource<AsyncJob>({
       resourceType: 'AsyncJob',
       status: 'accepted',
       dataVersion: 13,
@@ -488,7 +487,6 @@ describe('Post-Deploy Migration Worker', () => {
   });
 
   test('Run custom migration success', async () => {
-    const systemRepo = getSystemRepo();
     const asyncJob = await systemRepo.createResource<AsyncJob>({
       resourceType: 'AsyncJob',
       status: 'accepted',
@@ -533,7 +531,6 @@ describe('Post-Deploy Migration Worker', () => {
   });
 
   test('Run custom migration with error', async () => {
-    const systemRepo = getSystemRepo();
     const asyncJob = await systemRepo.createResource<AsyncJob>({
       resourceType: 'AsyncJob',
       status: 'accepted',

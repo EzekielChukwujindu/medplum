@@ -22,7 +22,7 @@ import * as oathKeysModule from '../../oauth/keys';
 import { getLoginForAccessToken } from '../../oauth/utils';
 import { getBinaryStorage } from '../../storage/loader';
 import { createTestProject, waitForAsyncJob, withTestContext } from '../../test.setup';
-import { getSystemRepo } from '../repo';
+import { getProjectSystemRepo, getShardSystemRepo } from '../repo';
 
 const botCodes = [
   [
@@ -98,7 +98,6 @@ const botDefinitions: { name: BotName; system: boolean; code: [string, string] }
 describe('Execute', () => {
   let app: express.Express;
   let project1: WithId<Project>;
-  let projectShardId1: string;
   let accessToken1: string;
   const bots = {} as Record<BotName, WithId<Bot>>;
 
@@ -123,7 +122,6 @@ describe('Execute', () => {
       membership: { admin: true },
     });
     project1 = testSetup.project;
-    projectShardId1 = testSetup.projectShardId;
     accessToken1 = testSetup.accessToken;
 
     async function setupBot(name: string, system: boolean, esmCode: string, cjsCode: string): Promise<WithId<Bot>> {
@@ -502,7 +500,6 @@ describe('Execute', () => {
     const { membership, profile } = await inviteUser({
       resourceType: 'Practitioner',
       project: project1,
-      projectShardId: projectShardId1,
       firstName: 'Test',
       lastName: 'User',
     });
@@ -636,7 +633,7 @@ describe('Execute', () => {
       project2 = testSetup2.project;
       accessToken2 = testSetup2.accessToken;
 
-      const systemRepo = getSystemRepo();
+      const systemRepo = getShardSystemRepo(testSetup2.projectShardId);
       for (const bot of [bots.echoBot, bots.systemEchoBot]) {
         await systemRepo.createResource<ProjectMembership>({
           resourceType: 'ProjectMembership',
@@ -716,11 +713,11 @@ describe('Execute', () => {
       ],
     ])('%s bot in %s project secrets', async (botName, whichProject, expectedSecrets) => {
       const bot = bots[botName];
-      const systemRepo = getSystemRepo();
 
       // execute the bot in the appropriate project context
       const project = whichProject === 'own' ? project1 : project2;
       const accessToken = whichProject === 'own' ? accessToken1 : accessToken2;
+      const systemRepo = await getProjectSystemRepo(project.id);
 
       const res = await request(app)
         .post(`/fhir/R4/Bot/${bot.id}/$execute`)

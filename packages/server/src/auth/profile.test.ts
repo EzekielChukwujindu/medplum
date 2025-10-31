@@ -8,7 +8,7 @@ import express from 'express';
 import request from 'supertest';
 import { initApp, shutdownApp } from '../app';
 import { loadTestConfig } from '../config/loader';
-import { getSystemRepo } from '../fhir/repo';
+import { getGlobalSystemRepo } from '../fhir/repo';
 import { withTestContext } from '../test.setup';
 import { registerNew } from './register';
 
@@ -19,6 +19,8 @@ let profile1: ProfileResource;
 let profile2: ProfileResource;
 
 describe('Profile', () => {
+  const systemRepo = getGlobalSystemRepo();
+
   beforeAll(async () => {
     const config = await loadTestConfig();
     await withTestContext(async () => {
@@ -92,7 +94,6 @@ describe('Profile', () => {
     expect(res1.status).toBe(200);
     expect(res1.body.login).toBeDefined();
 
-    const systemRepo = getSystemRepo();
     const login = await systemRepo.readResource<Login>('Login', res1.body.login);
     await withTestContext(() =>
       systemRepo.updateResource({
@@ -122,7 +123,6 @@ describe('Profile', () => {
     expect(res1.status).toBe(200);
     expect(res1.body.login).toBeDefined();
 
-    const systemRepo = getSystemRepo();
     const login = await systemRepo.readResource<Login>('Login', res1.body.login);
     await withTestContext(() =>
       systemRepo.updateResource({
@@ -152,7 +152,6 @@ describe('Profile', () => {
     expect(res1.status).toBe(200);
     expect(res1.body.login).toBeDefined();
 
-    const systemRepo = getSystemRepo();
     const login = await systemRepo.readResource<Login>('Login', res1.body.login);
     await withTestContext(() =>
       systemRepo.updateResource({
@@ -200,7 +199,6 @@ describe('Profile', () => {
 
   test('Membership for different user', async () => {
     // Create a dummy ProjectMembership
-    const systemRepo = getSystemRepo();
     const membership = await withTestContext(() =>
       systemRepo.createResource<ProjectMembership>({
         resourceType: 'ProjectMembership',

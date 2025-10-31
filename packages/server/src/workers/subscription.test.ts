@@ -3,11 +3,11 @@
 import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
 import {
   ContentType,
-  LogLevel,
-  Operator,
   createReference,
   generateId,
   getReferenceString,
+  LogLevel,
+  Operator,
   stringify,
 } from '@medplum/core';
 import type {
@@ -32,7 +32,8 @@ import { createHmac, randomUUID } from 'node:crypto';
 import { initAppServices, shutdownApp } from '../app';
 import { loadTestConfig } from '../config/loader';
 import type { MedplumServerConfig } from '../config/types';
-import { Repository, getSystemRepo } from '../fhir/repo';
+import type { SystemRepository } from '../fhir/repo';
+import { getShardSystemRepo, Repository } from '../fhir/repo';
 import { globalLogger } from '../logger';
 import * as otelModule from '../otel/otel';
 import { getRedisSubscriber } from '../redis';
@@ -45,7 +46,7 @@ jest.mock('node-fetch');
 const mockBullmq = jest.mocked(bullmqModule);
 
 describe('Subscription Worker', () => {
-  const systemRepo = getSystemRepo();
+  let systemRepo: SystemRepository;
   let repo: Repository;
   let botRepo: Repository;
   let mockLambdaClient: AwsClientStub<LambdaClient>;
@@ -64,7 +65,11 @@ describe('Subscription Worker', () => {
     (fetch as unknown as jest.Mock).mockClear();
 
     // Create one simple project with no advanced features enabled
-    const { client, repo: _repo } = await withTestContext(() =>
+    const {
+      client,
+      repo: _repo,
+      projectShardId,
+    } = await withTestContext(() =>
       createTestProject({
         withClient: true,
         withRepo: true,
@@ -76,11 +81,18 @@ describe('Subscription Worker', () => {
     );
 
     repo = _repo;
-    superAdminRepo = new Repository({ extendedMode: true, superAdmin: true, author: createReference(client) });
+    systemRepo = getShardSystemRepo(projectShardId);
+    superAdminRepo = new Repository({
+      projectShardId,
+      extendedMode: true,
+      superAdmin: true,
+      author: createReference(client),
+    });
 
     // Create another project, this one with bots enabled
     const botProjectDetails = await createTestProject({ withClient: true });
     botRepo = new Repository({
+      projectShardId,
       extendedMode: true,
       projects: [botProjectDetails.project],
       author: createReference(botProjectDetails.client),

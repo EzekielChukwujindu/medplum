@@ -9,7 +9,7 @@ import fetch from 'node-fetch';
 import type { Readable } from 'stream';
 import { getConfig } from '../config/loader';
 import { tryGetRequestContext, tryRunInRequestContext } from '../context';
-import { getSystemRepo } from '../fhir/repo';
+import { getShardSystemRepo } from '../fhir/repo';
 import { getLogger, globalLogger } from '../logger';
 import { getProjectShardId } from '../sharding/sharding-utils';
 import { getBinaryStorage } from '../storage/loader';
@@ -186,7 +186,7 @@ async function addDownloadJobData(job: DownloadJobData): Promise<void> {
  * @param job - The download job details.
  */
 export async function execDownloadJob<T extends Resource = Resource>(job: Job<DownloadJobData>): Promise<void> {
-  const systemRepo = getSystemRepo(undefined, job.data.shardId);
+  const systemRepo = getShardSystemRepo(job.data.shardId);
   const log = getLogger();
   const { resourceType, id, url } = job.data;
 

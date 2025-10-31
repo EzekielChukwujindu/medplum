@@ -80,6 +80,7 @@ export async function validateCodings(
   codeSystem: WithId<CodeSystem>,
   codings: Coding[]
 ): Promise<(Coding | undefined)[]> {
+  const shardId = getAuthenticatedContext().repo.shardId;
   const eligible: boolean[] = new Array(codings.length);
   const codesToQuery = new Set<string>();
   for (let i = 0; i < codings.length; i++) {
@@ -96,7 +97,7 @@ export async function validateCodings(
   let result: any[] | undefined;
   if (codesToQuery.size > 0) {
     const query = selectCoding(codeSystem.id, ...codesToQuery);
-    const db = getDatabasePool(DatabaseMode.READER);
+    const db = getDatabasePool(DatabaseMode.READER, shardId);
     result = await query.execute(db);
   }
 

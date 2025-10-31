@@ -20,7 +20,6 @@ import type {
   Login,
   OperationOutcome,
   Parameters,
-  Project,
   ProjectMembership,
   ProjectSetting,
   Reference,
@@ -31,10 +30,10 @@ import { extname } from 'node:path';
 import { getConfig } from '../config/loader';
 import type { AuthenticatedRequestContext } from '../context';
 import { buildTracingExtension } from '../context';
-import type { Repository } from '../fhir/repo';
-import { getSystemRepo } from '../fhir/repo';
+import { getGlobalSystemRepo, getProjectSystemRepo } from '../fhir/repo';
 import { getLogger } from '../logger';
 import { generateAccessToken } from '../oauth/keys';
+import { getProjectAndProjectShardId } from '../sharding/sharding-utils';
 import { getBinaryStorage } from '../storage/loader';
 import { AuditEventOutcome, logAuditEvent } from '../util/auditevent';
 import { createAuditEventEntities, findProjectMembership } from '../workers/utils';
@@ -131,8 +130,7 @@ export function getOutParametersFromResult(result: OperationOutcome | BotExecuti
  * @returns True if the bot is enabled.
  */
 export async function isBotEnabled(bot: Bot): Promise<boolean> {
-  const systemRepo = getSystemRepo();
-  const project = await systemRepo.readResource<Project>('Project', bot.meta?.project as string);
+  const { project } = await getProjectAndProjectShardId(bot.meta?.project);
   return !!project.features?.includes('bots');
 }
 
@@ -206,10 +204,10 @@ export async function writeBotInputToStorage(request: BotExecutionRequest): Prom
 }
 
 export async function getBotAccessToken(runAs: ProjectMembership): Promise<string> {
-  const systemRepo = getSystemRepo();
+  const globalSystemRepo = getGlobalSystemRepo();
 
   // Create the Login resource
-  const login = await systemRepo.createResource<Login>({
+  const login = await globalSystemRepo.createResource<Login>({
     resourceType: 'Login',
     authMethod: 'execute',
     user: runAs.user,
@@ -251,25 +249,19 @@ export async function getBotAccessToken(runAs: ProjectMembership): Promise<strin
  * @returns The collection of secrets.
  */
 export async function getBotSecrets(bot: Bot, runAs: ProjectMembership): Promise<Record<string, ProjectSetting>> {
-  const systemRepo = getSystemRepo();
   const botProjectId = bot.meta?.project as string;
   const runAsProjectId = resolveId(runAs.project) as string;
   const system = !!bot.system;
   const secrets: ProjectSetting[] = [];
   if (botProjectId !== runAsProjectId) {
-    await addBotSecrets(systemRepo, botProjectId, system, secrets);
+    await addBotSecrets(botProjectId, system, secrets);
   }
-  await addBotSecrets(systemRepo, runAsProjectId, system, secrets);
+  await addBotSecrets(runAsProjectId, system, secrets);
   return Object.fromEntries(secrets.map((s) => [s.name, s]));
 }
 
-async function addBotSecrets(
-  systemRepo: Repository,
-  projectId: string,
-  system: boolean,
-  out: ProjectSetting[]
-): Promise<void> {
-  const project = await systemRepo.readResource<Project>('Project', projectId);
+async function addBotSecrets(projectId: string, system: boolean, out: ProjectSetting[]): Promise<void> {
+  const { project } = await getProjectAndProjectShardId(projectId);
   if (system && project.systemSecret) {
     out.push(...project.systemSecret);
   }
@@ -345,12 +337,14 @@ export async function createAuditEvent(
   const config = getConfig();
   for (const destination of bot.auditEventDestination ?? ['resource']) {
     switch (destination) {
-      case 'resource':
-        await getSystemRepo().createResource<AuditEvent>({
+      case 'resource': {
+        const systemRepo = await getProjectSystemRepo(runAs.project);
+        await systemRepo.createResource<AuditEvent>({
           ...auditEvent,
           outcomeDesc: tail(outcomeDesc, config.maxBotLogLengthForResource ?? defaultOutputLength),
         });
         break;
+      }
       case 'log':
         logAuditEvent({
           ...auditEvent,

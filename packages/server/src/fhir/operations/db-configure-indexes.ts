@@ -9,7 +9,7 @@ import { requireSuperAdmin } from '../../admin/super';
 import { getConfig } from '../../config/loader';
 import { DatabaseMode } from '../../database';
 import { withLongRunningDatabaseClient } from '../../migrations/migration-utils';
-import { getSystemRepo } from '../repo';
+import { getShardSystemRepo } from '../repo';
 import { isValidTableName } from '../sql';
 import { AsyncJobExecutor } from './utils/asyncjobexecutor';
 import { buildOutputParameters, parseInputParameters } from './utils/parameters';
@@ -25,6 +25,13 @@ const operation: OperationDefinition = {
   type: false,
   instance: false,
   parameter: [
+    {
+      use: 'in',
+      name: 'shardId',
+      type: 'string',
+      min: 1,
+      max: '1',
+    },
     {
       use: 'in',
       name: 'tableName',
@@ -74,6 +81,7 @@ const operation: OperationDefinition = {
 };
 
 type InputParameters = {
+  shardId: string;
   tableName?: string[];
   fastUpdateAction?: 'set' | 'reset';
   fastUpdateValue?: boolean;
@@ -131,7 +139,7 @@ export async function dbConfigureIndexesHandler(req: FhirRequest): Promise<FhirR
     );
   }
 
-  const systemRepo = getSystemRepo();
+  const systemRepo = getShardSystemRepo(params.shardId);
   const { baseUrl } = getConfig();
   const exec = new AsyncJobExecutor(systemRepo);
   await exec.init(concatUrls(baseUrl, 'fhir/R4' + req.url));
@@ -148,7 +156,7 @@ export async function dbConfigureIndexesHandler(req: FhirRequest): Promise<FhirR
           }
         }
       },
-      systemRepo.projectShardId,
+      systemRepo.shardId,
       DatabaseMode.WRITER
     );
     return buildOutputParameters(operation, { action });

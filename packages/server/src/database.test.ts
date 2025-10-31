@@ -3,8 +3,8 @@
 import { deepClone, sleep } from '@medplum/core';
 import { EventEmitter } from 'node:events';
 import { Duplex } from 'node:stream';
+import type pg from 'pg';
 import type { PoolClient, PoolConfig, QueryArrayResult, QueryConfig, QueryResult, QueryResultRow } from 'pg';
-import pg from 'pg';
 import { Readable, Writable } from 'stream';
 import { loadConfig, loadTestConfig } from './config/loader';
 import type { MedplumDatabaseConfig, MedplumDatabaseSslConfig } from './config/types';
@@ -20,7 +20,7 @@ import {
 import { GetDataVersionSql, GetVersionSql } from './migration-sql';
 import { getLatestPostDeployMigrationVersion } from './migrations/migration-versions';
 import * as shardPool from './sharding/shard-pool';
-import { ShardPoolClient } from './sharding/sharding-types';
+import type { ShardPoolClient } from './sharding/sharding-types';
 import { GLOBAL_SHARD_ID } from './sharding/sharding-utils';
 
 const latestVersion = getLatestPostDeployMigrationVersion();
@@ -232,7 +232,7 @@ describe('Advisory locks', () => {
   beforeEach(async () => {
     const config = await loadTestConfig();
     await initDatabase(config);
-    const pool = getDatabasePool(DatabaseMode.READER);
+    const pool = getDatabasePool(DatabaseMode.READER, GLOBAL_SHARD_ID);
     clientA = await pool.connect();
     clientB = await pool.connect();
     await clientA.query(`SET statement_timeout TO 100`);

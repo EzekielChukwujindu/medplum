@@ -15,7 +15,7 @@ import { executeBot } from '../bots/execute';
 import { getConfig } from '../config/loader';
 import { getLogger } from '../logger';
 import { findProjectMembership } from '../workers/utils';
-import { getSystemRepo } from './repo';
+import { getProjectSystemRepo } from './repo';
 
 export const PRE_COMMIT_SUBSCRIPTION_URL = 'https://medplum.com/fhir/StructureDefinition/pre-commit-bot';
 
@@ -48,7 +48,7 @@ export async function preCommitValidation<T extends Resource>(
   }
 
   resource.meta = { ...resource.meta, author };
-  const systemRepo = getSystemRepo();
+  const systemRepo = await getProjectSystemRepo(project.id);
   const logger = getLogger();
   const subscriptions = await systemRepo.searchResources<Subscription>({
     resourceType: 'Subscription',

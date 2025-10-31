@@ -42,13 +42,13 @@ import { executeBot } from '../bots/execute';
 import { getRequestContext, tryGetRequestContext, tryRunInRequestContext } from '../context';
 import { buildAccessPolicy } from '../fhir/accesspolicy';
 import { isPreCommitSubscription } from '../fhir/precommit';
-import type { Repository, ResendSubscriptionsOptions } from '../fhir/repo';
-import { getSystemRepo, getSystemRepoForProject } from '../fhir/repo';
+import type { Repository, ResendSubscriptionsOptions, SystemRepository } from '../fhir/repo';
+import { getGlobalSystemRepo, getProjectSystemRepo, getShardSystemRepo } from '../fhir/repo';
 import { RewriteMode, rewriteAttachments } from '../fhir/rewrite';
 import { getLogger, globalLogger } from '../logger';
 import { recordHistogramValue } from '../otel/otel';
 import { getRedis } from '../redis';
-import { GLOBAL_SHARD_ID, getProjectShardId } from '../sharding/sharding-utils';
+import { getProjectShardId } from '../sharding/sharding-utils';
 import type { SubEventsOptions } from '../subscriptions/websockets';
 import { parseTraceparent } from '../traceparent';
 import { AuditEventOutcome } from '../util/auditevent';
@@ -361,7 +361,7 @@ async function addSubscriptionJobData(job: SubscriptionJobData): Promise<void> {
  * @returns The list of all subscriptions in this repository.
  */
 async function getSubscriptions(resource: Resource, project: WithId<Project>): Promise<WithId<Subscription>[]> {
-  const systemRepo = await getSystemRepoForProject(project.id);
+  const systemRepo = await getProjectSystemRepo(project.id);
   const subscriptions = await systemRepo.searchResources<Subscription>({
     resourceType: 'Subscription',
     count: 1000,
@@ -420,7 +420,7 @@ async function getSubscriptions(resource: Resource, project: WithId<Project>): P
 export async function execSubscriptionJob(job: Job<SubscriptionJobData>): Promise<void> {
   const { subscriptionId, channelType, resourceType, id, versionId, interaction, requestTime, verbose, shardId } =
     job.data;
-  const systemRepo = getSystemRepo(undefined, shardId);
+  const systemRepo = getShardSystemRepo(shardId);
   const logger = getLogger();
   const logFn = verbose ? logger.info : logger.debug;
 
@@ -548,14 +548,13 @@ async function sendRestHook(
   const fetchStartTime = Date.now();
   let fetchEndTime: number;
 
-  let projectShardId: string;
+  let systemRepo: SystemRepository;
   if (subscription.meta?.project) {
-    projectShardId = await getProjectShardId(subscription.meta?.project);
+    systemRepo = await getProjectSystemRepo(subscription.meta.project);
   } else {
-    projectShardId = GLOBAL_SHARD_ID;
+    systemRepo = getGlobalSystemRepo();
   }
 
-  const systemRepo = getSystemRepo(undefined, projectShardId);
   try {
     log.info('Sending rest hook to: ' + url);
     log.debug('Rest hook headers: ' + JSON.stringify(headers, undefined, 2));

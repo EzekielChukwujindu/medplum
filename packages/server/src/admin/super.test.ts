@@ -10,7 +10,7 @@ import { initApp, shutdownApp } from '../app';
 import { registerNew } from '../auth/register';
 import { loadTestConfig } from '../config/loader';
 import { AuthenticatedRequestContext } from '../context';
-import { getSystemRepo, Repository } from '../fhir/repo';
+import { getShardSystemRepo, Repository } from '../fhir/repo';
 import { globalLogger } from '../logger';
 import { generateAccessToken } from '../oauth/keys';
 import { requestContextStore } from '../request-context-store';
@@ -27,11 +27,6 @@ jest.mock('../seeds/valuesets');
 jest.mock('../seeds/structuredefinitions');
 jest.mock('../seeds/searchparameters');
 
-const app = express();
-let project: Project;
-let adminAccessToken: string;
-let nonAdminAccessToken: string;
-
 jest.mock('../migrations/data/index', () => {
   return {
     v1: jest.requireMock('../migrations/data/v1'),
@@ -41,16 +36,22 @@ jest.mock('../migrations/data/index', () => {
 });
 
 describe('Super Admin routes', () => {
+  const app = express();
+  let project: Project;
+  let projectShardId: string;
+  let adminAccessToken: string;
+  let nonAdminAccessToken: string;
+
   beforeAll(async () => {
     const config = await loadTestConfig();
     await initApp(app, config);
 
     requestContextStore.enterWith(AuthenticatedRequestContext.system());
-    ({ project } = await createTestProject({ withClient: true, superAdmin: true }));
+    ({ project, projectShardId } = await createTestProject({ withClient: true, superAdmin: true }));
 
     const normalProject = await createTestProject();
 
-    const systemRepo = getSystemRepo();
+    const systemRepo = getShardSystemRepo(projectShardId);
 
     const practitioner1 = await systemRepo.createResource<Practitioner>({ resourceType: 'Practitioner' });
 
