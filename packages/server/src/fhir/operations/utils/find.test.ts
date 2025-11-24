@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import type { Interval } from './find';
 import { resolveAvailability } from './find';
 import type { SchedulingParameters } from './scheduling-parameters';
 
@@ -68,6 +67,64 @@ describe('resolveAvailability', () => {
     ]);
   });
 
+  test('availabilities crossing the start of the query range are clamped', () => {
+    const schedulingParameters: SchedulingParameters = {
+      availability: [
+        {
+          dayOfWeek: ['tue'],
+          timeOfDay: ['10:00:00'],
+          duration: 360,
+        },
+      ],
+      duration: 20,
+      bufferBefore: 0,
+      bufferAfter: 0,
+      alignmentInterval: 60,
+      alignmentOffset: 0,
+      serviceTypes: [],
+      wildcard: true,
+    };
+
+    const range = {
+      start: new Date('2025-12-02T12:00:00.000-05:00'), // Tue Oct 2, noon ET
+      end: new Date('2025-12-02T22:00:00.000-05:00'), // Tue Oct 2, 10pm ET
+    };
+
+    expect(resolveAvailability(schedulingParameters, range, 'America/New_York')).toEqual([
+      // Tue Dec 2, 12:00pm ET - Tue Dec 2, 4:00pm ET
+      { start: new Date('2025-12-02T17:00:00.000Z'), end: new Date('2025-12-02T21:00:00.000Z') },
+    ]);
+  });
+
+  test('availabilities crossing the end of the query range are clamped', () => {
+    const schedulingParameters: SchedulingParameters = {
+      availability: [
+        {
+          dayOfWeek: ['tue'],
+          timeOfDay: ['10:00:00'],
+          duration: 360,
+        },
+      ],
+      duration: 20,
+      bufferBefore: 0,
+      bufferAfter: 0,
+      alignmentInterval: 60,
+      alignmentOffset: 0,
+      serviceTypes: [],
+      wildcard: true,
+    };
+
+    const range = {
+      start: new Date('2025-12-02T04:00:00.000-05:00'), // Tue Oct 2, 4am ET
+      end: new Date('2025-12-02T14:30:00.000-05:00'), // Tue Oct 2, 2:30pm ET
+    };
+
+    expect(resolveAvailability(schedulingParameters, range, 'America/New_York')).toEqual([
+      // Tue Dec 2, 10:00am ET - Tue Dec 2, 2:30pm ET
+      { start: new Date('2025-12-02T15:00:00.000Z'), end: new Date('2025-12-02T19:30:00.000Z') },
+    ]);
+  });
+
   test('on days with DST transitions', () => {
     const schedulingParameters: SchedulingParameters = {
       availability: [
@@ -105,5 +162,5 @@ describe('resolveAvailability', () => {
     expect(resolveAvailability(schedulingParameters, fallRange, 'America/New_York')).toEqual([
       { start: new Date('2025-11-02T15:00:00.000Z'), end: new Date('2025-11-02T21:00:00.000Z') },
     ]);
-  })
+  });
 });
