@@ -13,6 +13,7 @@ Id: scheduling-parameters
 Title: "Scheduling Parameters"
 Description: "Used to generate availability in $find operations"
 * ^url = "http://medplum.com/fhir/StructureDefinition/scheduling-parameters"
+* ^status = #draft
 * ^context[0].type = #element
 * ^context[0].expression = "Schedule"
 * ^context[1].type = #element
@@ -61,3 +62,9 @@ Description: "Used to generate availability in $find operations"
 * extension[duration].valueDuration.comparator 0..0
 * extension[duration].valueDuration.unit from ConstrainedTimeUnit
 
+Profile: ScheduleWithSchedulingParameters
+Id: medplum-schedule-with-scheduling-parameters
+Title: "Schedule with Scheduling Parameters"
+Parent: Schedule
+* ^status = #draft
+* extension contains SchedulingParameters named schedulingParameters 0..*
