@@ -1,0 +1,80 @@
+{
+  "name": "@medplum/solid-hooks",
+  "version": "5.0.10",
+  "description": "Medplum SolidJS Hooks Library",
+  "keywords": [
+    "medplum",
+    "fhir",
+    "healthcare",
+    "interoperability",
+    "solidjs",
+    "solid-component"
+  ],
+  "homepage": "https://www.medplum.com/",
+  "bugs": {
+    "url": "https://github.com/medplum/medplum/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/medplum/medplum.git",
+    "directory": "packages/solid-hooks"
+  },
+  "license": "Apache-2.0",
+  "author": "Medplum <hello@medplum.com>",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+      ".": {
+        "solid": "./src/index.ts",
+        "import": {
+          "types": "./dist/esm/index.d.ts",
+          "default": "./dist/esm/index.mjs"
+        },
+        "require": {
+          "types": "./dist/cjs/index.d.ts",
+          "default": "./dist/cjs/index.cjs"
+        }
+      }
+    },
+  "main": "dist/cjs/index.cjs",
+  "module": "dist/esm/index.mjs",
+  "types": "dist/cjs/index.d.ts",
+  "files": [
+    "dist/cjs",
+    "dist/esm"
+  ],
+  "scripts": {
+    "api-extractor": "api-extractor run --local && cp dist/types.d.ts dist/cjs/index.d.ts && cp dist/types.d.ts dist/esm/index.d.ts",
+    "build": "npm run clean && tsc && node esbuild.mjs && npm run api-extractor",
+    "clean": "rimraf dist",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@medplum/core": "5.0.10",
+    "@medplum/definitions": "5.0.10",
+    "@medplum/fhirtypes": "5.0.10",
+    "@medplum/mock": "5.0.10",
+    "@solidjs/testing-library": "^0.8.9",
+    "@testing-library/jest-dom": "6.9.1",
+    "@solidjs/router": "^0.15.4",
+    "@types/node": "22.19.3",
+    "dotenv": "17.2.3",
+    "happy-dom": "^15.0.0",
+    "jest-websocket-mock": "2.5.0",
+    "solid-js": "^1.9.3",
+    "typescript": "5.9.3",
+    "vite": "^5.0.0",
+    "vite-plugin-solid": "^2.11.0",
+    "vitest": "^2.1.0"
+  },
+  "peerDependencies": {
+    "@medplum/core": "5.0.10",
+    "solid-js": "^1.0.0"
+  },
+  "engines": {
+    "node": "^22.18.0 || >=24.2.0"
+  }
+}

@@ -79,5 +79,8 @@
   "packageManager": "npm@10.9.4",
   "engines": {
     "node": "^22.18.0 || >=24.2.0"
+  },
+  "dependencies": {
+    "@solidjs/router": "^0.15.4"
   }
 }
