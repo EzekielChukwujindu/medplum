@@ -1,91 +1,90 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 import { renderHook } from '@solidjs/testing-library';
+import { createSignal } from 'solid-js';
 import { describe, expect, test } from 'vitest';
 import { useCachedBinaryUrl } from './useCachedBinaryUrl';
 
 // Maintaining original test names and structure for 100% parity
-describe('useDoubleNumber', () => {
+describe('useCachedBinaryUrl', () => {
   test('Undefined', () => {
     const { result } = renderHook(() => useCachedBinaryUrl(undefined));
-    expect(result).toBe(undefined);
+    expect(result()).toBe(undefined);
   });
 
   test('Empty string', () => {
     const { result } = renderHook(() => useCachedBinaryUrl(''));
-    expect(result).toBe(undefined);
+    expect(result()).toBe(undefined);
   });
 
   test('Query string only', () => {
     const url = createUrl('', '123', '456', 1234567890);
     const { result } = renderHook(() => useCachedBinaryUrl(url));
-    expect(result).toBe(url);
+    expect(result()).toBe(url);
   });
 
   test('No query string', () => {
     const url = createUrl('https://example.com/image.jpg', undefined, undefined, undefined);
     const { result } = renderHook(() => useCachedBinaryUrl(url));
-    expect(result).toBe(url);
+    expect(result()).toBe(url);
   });
 
   test('Invalid query string', () => {
     const url = 'not a valid url';
     const { result } = renderHook(() => useCachedBinaryUrl(url));
-    expect(result).toBe(url);
+    expect(result()).toBe(url);
   });
 
   test('Missing key pair', () => {
     const url = createUrl('https://example.com/image.jpg', undefined, '456', nowInSeconds() + 3600);
     const { result } = renderHook(() => useCachedBinaryUrl(url));
-    expect(result).toBe(url);
+    expect(result()).toBe(url);
   });
 
   test('Missing signature', () => {
     const url = createUrl('https://example.com/image.jpg', '123', undefined, nowInSeconds() + 3600);
     const { result } = renderHook(() => useCachedBinaryUrl(url));
-    expect(result).toBe(url);
+    expect(result()).toBe(url);
   });
 
   test('Missing expires', () => {
     const url = createUrl('https://example.com/image.jpg', '123', '456', undefined);
     const { result } = renderHook(() => useCachedBinaryUrl(url));
-    expect(result).toBe(url);
+    expect(result()).toBe(url);
   });
 
   test('Expires in milliseconds', () => {
     const url = createUrl('https://example.com/image.jpg', '123', undefined, Date.now() + 3600 * 1000);
     const { result } = renderHook(() => useCachedBinaryUrl(url));
-    expect(result).toBe(url);
+    expect(result()).toBe(url);
   });
 
   test('Reuse cached URL', () => {
     const url1 = createUrl('https://example.com/reused.jpg', '123', '456', nowInSeconds() + 100);
-    const { result, rerender } = renderHook((props: { binaryUrl: string | undefined }) => 
-      useCachedBinaryUrl(props.binaryUrl), 
-      { initialProps: { binaryUrl: url1 } }
-    );
-    expect(result).toBe(url1);
+    // Use a signal to simulate prop changes - SolidJS doesn't have rerender
+    const [binaryUrl, setBinaryUrl] = createSignal<string | undefined>(url1);
+    const { result } = renderHook(() => useCachedBinaryUrl(binaryUrl()));
+    expect(result()).toBe(url1);
 
     // Next URL is 100 seconds in the future
     // Should reuse the cached URL
     const url2 = createUrl('https://example.com/reused.jpg', '123', '456', nowInSeconds() + 200);
-    rerender({ binaryUrl: url2 });
-    expect(result).toBe(url1);
+    setBinaryUrl(url2);
+    expect(result()).toBe(url1);
   });
 
   test('Expired url', () => {
     const url1 = createUrl('https://example.com/expired.jpg', '123', '456', nowInSeconds() - 100);
-    const { result, rerender } = renderHook((props: { binaryUrl: string | undefined }) => 
-      useCachedBinaryUrl(props.binaryUrl), 
-      { initialProps: { binaryUrl: url1 } }
-    );
-    expect(result).toBe(url1);
+    // Use a signal to simulate prop changes - SolidJS doesn't have rerender
+    const [binaryUrl, setBinaryUrl] = createSignal<string | undefined>(url1);
+    const { result } = renderHook(() => useCachedBinaryUrl(binaryUrl()));
+    expect(result()).toBe(url1);
 
     // First URL is expired
     // Should use the new URL
     const url2 = createUrl('https://example.com/expired.jpg', '123', '456', nowInSeconds() + 200);
-    rerender({ binaryUrl: url2 });
-    expect(result).toBe(url2);
+    setBinaryUrl(url2);
+    expect(result()).toBe(url2);
   });
 });
 

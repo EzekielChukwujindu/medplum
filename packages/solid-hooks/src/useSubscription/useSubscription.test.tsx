@@ -1,16 +1,18 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { SubscriptionEmitter, generateId } from '@medplum/core';
-import type { Bundle } from '@medplum/fhirtypes';
+// import { SubscriptionEmitter, generateId } from '@medplum/core';
+import { generateId } from '@medplum/core';
+import type { Bundle, Resource } from '@medplum/fhirtypes';
 import { MockClient } from '@medplum/mock';
 import { render, screen, waitFor } from '@solidjs/testing-library';
 import { createSignal, JSX, Show } from 'solid-js';
 import { MemoryRouter } from '@solidjs/router';
+import { describe, test, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
 import type { UseSubscriptionOptions } from './useSubscription';
 import { useSubscription } from './useSubscription';
 
-const MOCK_SUBSCRIPTION_ID = '7b081dd8-a2d2-40dd-9596-58a7305a73b0';
+// const MOCK_SUBSCRIPTION_ID = '7b081dd8-a2d2-40dd-9596-58a7305a73b0';
 
 function TestComponent(props: {
   criteria: string | undefined;
@@ -34,7 +36,7 @@ describe('useSubscription()', () => {
   let medplum: MockClient;
 
   beforeAll(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   beforeEach(() => {
@@ -42,7 +44,7 @@ describe('useSubscription()', () => {
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test('Mount and unmount completely', async () => {
@@ -62,7 +64,7 @@ describe('useSubscription()', () => {
     await waitFor(() => expect(screen.getByTestId('bundle').innerHTML).not.toBe('undefined'));
     
     unmount();
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
     expect(medplum.getSubscriptionManager().getCriteriaCount()).toEqual(0);
   });
 
@@ -82,16 +84,16 @@ describe('useSubscription()', () => {
     const emitter = medplum.getSubscriptionManager().getEmitter('Communication');
 
     setShow(false);
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
     expect(medplum.getSubscriptionManager().getCriteriaCount()).toEqual(1);
 
     setShow(true);
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
     expect(medplum.getSubscriptionManager().getCriteriaCount()).toEqual(1);
     expect(medplum.getSubscriptionManager().getEmitter('Communication')).toBe(emitter);
 
     setShow(false);
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
     expect(medplum.getSubscriptionManager().getCriteriaCount()).toEqual(0);
   });
 
@@ -155,7 +157,7 @@ describe('useSubscription()', () => {
     });
     expect(lastFromCb1?.id).toBe(id1);
 
-    setCallback(() => (bundle) => { lastFromCb2 = bundle; });
+    setCallback(() => (bundle: Bundle<Resource> | undefined) => { lastFromCb2 = bundle; });
 
     const id2 = generateId();
     medplum.getSubscriptionManager().emitEventForCriteria<'message'>('Communication', {
@@ -193,9 +195,14 @@ describe('useSubscription()', () => {
     render(() => (
       <MemoryRouter>
         <MedplumProvider medplum={medplum}>
-          <div data-testid="notification-count">
-            {useSubscription('Communication', () => setNotifications((s) => s + 1)), notifications()}
-          </div>
+          {(() => {
+            useSubscription('Communication', () => setNotifications((s) => s + 1));
+            return (
+              <div data-testid="notification-count">
+                {notifications()}
+              </div>
+            );
+          })()}
         </MedplumProvider>
       </MemoryRouter>
     ));

@@ -4,13 +4,14 @@ import { createReference } from '@medplum/core';
 import type { OperationOutcome, Reference, Resource, ServiceRequest } from '@medplum/fhirtypes';
 import { HomerSimpson, MockClient } from '@medplum/mock';
 import { render, screen, waitFor, fireEvent } from '@solidjs/testing-library';
-import { createSignal, JSX } from 'solid-js';
+import { createEffect, createSignal, JSX, type Accessor } from 'solid-js';
 import { MemoryRouter } from '@solidjs/router';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
 import { useResource } from './useResource';
 
 interface TestComponentProps {
-  value?: Reference | Resource;
+  value?: Reference | Resource | Accessor<Reference | Partial<Resource> | undefined>;
   setOutcome?: (outcome: OperationOutcome) => void;
   maxRenders?: number;
 }
@@ -18,17 +19,18 @@ interface TestComponentProps {
 function TestComponent(props: TestComponentProps): JSX.Element {
   let renderCount = 0;
   const maxRenders = props.maxRenders ?? 5;
+  const resource = useResource(props.value, props.setOutcome);
 
-  return (
-    <div data-testid="test-component">
-      {(() => {
-        const resource = useResource(props.value, props.setOutcome);
-        renderCount++;
+  createEffect(() => {
+     renderCount++;
         if (maxRenders > 0 && renderCount > maxRenders) {
           throw new Error(`Rendered too many times: ${renderCount}`);
         }
-        return JSON.stringify(resource);
-      })()}
+  });
+
+  return (
+    <div data-testid="test-component">
+      {JSON.stringify(resource())}
     </div>
   );
 }
@@ -51,7 +53,7 @@ describe('useResource', () => {
   }
 
   test('Renders null', () => {
-    setup(() => <TestComponent value={null as any} />);
+    setup(() => <TestComponent value={null as any} />); // Cast to any for test
     const el = screen.getByTestId('test-component');
     expect(el.innerHTML).toBe('');
   });
@@ -96,7 +98,7 @@ describe('useResource', () => {
 
   test('Set outcome on error', async () => {
     const [outcome, setOutcome] = createSignal<OperationOutcome>();
-    medplum.readReference = jest.fn().mockRejectedValue({ resourceType: 'OperationOutcome', issue: [] });
+    medplum.readReference = vi.fn().mockRejectedValue({ resourceType: 'OperationOutcome', issue: [] });
     setup(() => <TestComponent value={{ reference: 'Patient/not-found' }} setOutcome={setOutcome} />);
     await waitFor(() => expect(outcome()).toBeDefined());
   });
@@ -104,16 +106,19 @@ describe('useResource', () => {
   test('Responds to value change', async () => {
     function TestWrapper(): JSX.Element {
       const [id, setId] = createSignal('123');
+      // Pass an accessor so the hook reacts to signal changes
+      const getValue = () => ({ id: id(), resourceType: 'ServiceRequest' }) as unknown as Reference;
+      
       return (
         <>
           <button onClick={() => setId('456')}>Click</button>
-          <TestComponent value={{ id: id(), resourceType: 'ServiceRequest' }} />
+          <TestComponent value={getValue} />
         </>
       );
     }
     setup(TestWrapper);
     const el = screen.getByTestId('test-component');
-    expect(el.innerHTML).toContain('123');
+    await waitFor(() => expect(el.innerHTML).toContain('123'));
     fireEvent.click(screen.getByText('Click'));
     await waitFor(() => expect(el.innerHTML).toContain('456'));
   });
@@ -129,12 +134,13 @@ describe('useResource', () => {
         subject: { reference: 'Patient/123' },
       });
 
+      // Pass the signal accessor directly
       return (
         <>
           <button onClick={() => setResource((sr) => ({ ...sr, status: sr.status === 'active' ? 'draft' : 'active' }))}>
             Click
           </button>
-          <TestComponent value={resource()} />
+          <TestComponent value={resource} />
         </>
       );
     }
@@ -142,7 +148,7 @@ describe('useResource', () => {
     setup(TestWrapper);
 
     const el = screen.getByTestId('test-component');
-    expect(el.innerHTML).toContain('"status":"draft"');
+    await waitFor(() => expect(el.innerHTML).toContain('"status":"draft"'));
 
     fireEvent.click(screen.getByText('Click'));
     await waitFor(() => expect(el.innerHTML).toContain('"status":"active"'));

@@ -39,6 +39,9 @@ export function MedplumProvider(props: MedplumProviderProps): JSX.Element {
       });
     }
 
+    // Sync state immediately in case medplum instance changed
+    eventListener();
+
     for (const event of EVENTS_TO_TRACK) {
       medplum.addEventListener(event, eventListener);
     }

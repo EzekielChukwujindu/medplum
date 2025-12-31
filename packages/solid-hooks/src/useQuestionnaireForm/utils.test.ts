@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
+import { describe, test, expect } from 'vitest';
 import type { TypedValue } from '@medplum/core';
 import type {
   Encounter,

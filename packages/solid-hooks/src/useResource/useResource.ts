@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { createEffect, createSignal, onCleanup } from 'solid-js';
+import { createEffect, createSignal, untrack, type Accessor } from 'solid-js';
 import type { MedplumClient } from '@medplum/core';
 import { deepEquals, isReference, isResource, normalizeOperationOutcome } from '@medplum/core';
 import type { OperationOutcome, Reference, Resource } from '@medplum/fhirtypes';
@@ -14,53 +14,54 @@ import { useMedplum } from '../MedplumProvider/MedplumProvider.context';
  * @returns The resolved resource.
  */
 export function useResource<T extends Resource>(
-  value: Reference<T> | Partial<T> | undefined,
+  value: Reference<T> | Partial<T> | undefined | Accessor<Reference<T> | Partial<T> | undefined>,
   setOutcome?: (outcome: OperationOutcome) => void
-): T | undefined {
+): Accessor<T | undefined> {
   const medplum = useMedplum();
 
-  // We use deepEquals to ensure the signal only notifies when the resource actually changes,
-  // replicating React's setResourceIfChanged logic.
-  const [resource, setResource] = createSignal<T | undefined>(
-    getInitialResource(medplum, value),
-    { equals: deepEquals }
-  );
+  const getValue = () => (typeof value === 'function' ? (value as Accessor<any>)() : value);
+  const [resource, setResource] = createSignal<T | undefined>(getInitialResource(medplum, getValue()));
 
   createEffect(() => {
-    // By accessing value and medplum here, Solid tracks them.
-    // If they are reactive (e.g., props), the effect will re-run on change.
-    const currentMedplum = medplum;
-    const currentValue = value;
-    let subscribed = true;
+    const currentValue = getValue();
+    if (currentValue) {
+      const reference =
+        typeof currentValue === 'object' && 'reference' in currentValue ? (currentValue.reference as string) : undefined;
+      const resourceType =
+        typeof currentValue === 'object' && 'resourceType' in currentValue ? (currentValue.resourceType as string) : undefined;
+      const id = typeof currentValue === 'object' && 'id' in currentValue ? (currentValue.id as string) : undefined;
 
-    const newValue = getInitialResource(currentMedplum, currentValue);
-
-    if (!newValue && isReference(currentValue)) {
-      currentMedplum
-        .readReference(currentValue as Reference<T>)
-        .then((r) => {
-          if (subscribed) {
-            setResource(() => r);
-          }
-        })
-        .catch((err) => {
-          if (subscribed) {
-            setResource(undefined);
-            if (setOutcome) {
-              setOutcome(normalizeOperationOutcome(err));
-            }
-          }
-        });
+      if (resourceType && id) {
+        medplum
+          .readResource(resourceType as any, id)
+          .then((r) => setResourceIfChanged(r as T))
+          .catch(handleError);
+      } else if (reference) {
+        medplum
+          .readReference(currentValue as Reference<T>)
+          .then((r) => setResourceIfChanged(r as T))
+          .catch(handleError);
+      } else if (resourceType) {
+        setResourceIfChanged(currentValue as T);
+      }
     } else {
-      setResource(() => newValue);
+      setResource(undefined);
     }
-
-    onCleanup(() => {
-      subscribed = false;
-    });
   });
 
-  return resource();
+  function setResourceIfChanged(r: T): void {
+    if (!deepEquals(r, untrack(resource))) {
+      setResource(() => r);
+    }
+  }
+
+  function handleError(err: any): void {
+    if (setOutcome) {
+      setOutcome(normalizeOperationOutcome(err));
+    }
+  }
+
+  return resource;
 }
 
 /**

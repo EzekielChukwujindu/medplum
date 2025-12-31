@@ -3,7 +3,7 @@
 import type { SubscriptionEmitter, SubscriptionEventMap } from '@medplum/core';
 import { deepEquals } from '@medplum/core';
 import type { Bundle, Subscription } from '@medplum/fhirtypes';
-import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
+import { createEffect, createMemo, createSignal, onCleanup, untrack, type Accessor } from 'solid-js';
 import { useMedplum } from '../MedplumProvider/MedplumProvider.context';
 
 const SUBSCRIPTION_DEBOUNCE_MS = 3000;
@@ -25,7 +25,7 @@ export type UseSubscriptionOptions = {
  * @param options - Optional configuration options.
  */
 export function useSubscription(
-  criteria: string | undefined,
+  criteria: string | undefined | Accessor<string | undefined>,
   callback: (bundle: Bundle) => void,
   options?: UseSubscriptionOptions
 ): void {
@@ -49,7 +49,7 @@ export function useSubscription(
   let prevProps: Partial<Subscription> | undefined;
 
   createEffect(() => {
-    const c = criteria;
+    const c = typeof criteria === 'function' ? (criteria as Accessor<string | undefined>)() : criteria;
     const p = memoizedSubProps();
     const m = medplum;
 

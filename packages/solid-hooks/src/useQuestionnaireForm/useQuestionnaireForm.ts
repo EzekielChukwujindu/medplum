@@ -11,9 +11,9 @@ import type {
   Reference,
   Signature,
 } from '@medplum/fhirtypes';
-import { createSignal, createEffect, on, batch } from 'solid-js';
+import { batch, createEffect } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { useResource } from '../useResource/useResource'; // Assuming this is adapted or from Medplum React—keep as-is for parity
+import { useResource } from '../useResource/useResource';
 import {
   buildInitialResponse,
   buildInitialResponseItem,
@@ -21,22 +21,6 @@ import {
   QUESTIONNAIRE_ITEM_CONTROL_URL,
   QUESTIONNAIRE_SIGNATURE_RESPONSE_URL,
 } from './utils';
-
-// Solid Hook for Questionnaire Form
-
-// Why is this hard?
-// 1. It needs to handle both initial loading of a questionnaire and updating the response as the user interacts with it.
-// 2. It needs to support pagination and navigation through the questionnaire.
-// 3. It needs to handle complex items like groups and repeatable items.
-
-// Conventions we use:
-// 1. We use `QuestionnaireResponse` to track the user's answers.
-// 2. We use `QuestionnaireItem` to define the structure of the questionnaire.
-// 3. Response items are linked to their corresponding questionnaire items by `linkId`.
-// 4. Response items will always have a `linkId` that matches the `linkId` of the questionnaire item they correspond to.
-// 5. Response items will also always have an `id` that is unique within the response, which can be used to track changes to individual items.
-// 6. Pagination is enabled by default, so current state items will only include items for the current page.
-// 7. If Pagination is disabled, all items will be included in the current state items.
 
 export interface UseQuestionnaireFormProps {
   readonly questionnaire: Questionnaire | Reference<Questionnaire>;
@@ -55,63 +39,25 @@ export interface QuestionnaireFormPage {
 }
 
 export interface QuestionnaireFormLoadingState {
-  /** Currently loading data such as the Questionnaire or the QuestionnaireResponse default value */
   readonly loading: true;
 }
 
 export interface QuestionnaireFormLoadedState {
-  /** Not loading */
   readonly loading: false;
-
-  /** The loaded questionnaire */
-  questionnaire: Questionnaire;
-
-  /** The current draft questionnaire response */
-  questionnaireResponse: QuestionnaireResponse;
-
-  /** Optional questionnaire subject */
-  subject?: Reference;
-
-  /** Optional questionnaire encounter */
-  encounter?: Reference<Encounter>;
-
-  /** The top level items for the current page */
-  items: QuestionnaireItem[];
-
-  /** The response items for the current page */
-  responseItems: QuestionnaireResponseItem[];
-
-  /**
-   * Adds a new group item to the current context.
-   * @param context - The current context of the questionnaire response items.
-   * @param item - The questionnaire item that is being added to the group.
-   */
-  onAddGroup: (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => void;
-
-  /**
-   * Adds an answer to a repeating item.
-   * @param context - The current context of the questionnaire response items.
-   * @param item - The questionnaire item that is being answered.
-   */
-  onAddAnswer: (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => void;
-
-  /**
-   * Changes an answer value.
-   * @param context - The current context of the questionnaire response items.
-   * @param item - The questionnaire item that is being answered.
-   * @param answer - The answer(s) provided by the user for the questionnaire item.
-   */
-  onChangeAnswer: (
+  readonly questionnaire: Questionnaire;
+  readonly questionnaireResponse: QuestionnaireResponse;
+  readonly subject?: Reference;
+  readonly encounter?: Reference<Encounter>;
+  readonly items: QuestionnaireItem[];
+  readonly responseItems: QuestionnaireResponseItem[];
+  readonly onAddGroup: (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => void;
+  readonly onAddAnswer: (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => void;
+  readonly onChangeAnswer: (
     context: QuestionnaireResponseItem[],
     item: QuestionnaireItem,
     answer: QuestionnaireResponseItemAnswer[]
   ) => void;
-
-  /**
-   * Sets or updates the signature for the questionnaire response.
-   * @param signature - The signature to set, or undefined to clear the signature.
-   */
-  onChangeSignature: (signature: Signature | undefined) => void;
+  readonly onChangeSignature: (signature: Signature | undefined) => void;
 }
 
 export interface QuestionnaireFormSinglePageState extends QuestionnaireFormLoadedState {
@@ -120,10 +66,10 @@ export interface QuestionnaireFormSinglePageState extends QuestionnaireFormLoade
 
 export interface QuestionnaireFormPaginationState extends QuestionnaireFormLoadedState {
   readonly pagination: true;
-  pages: QuestionnaireFormPage[];
-  activePage: number;
-  onNextPage: () => void;
-  onPrevPage: () => void;
+  readonly pages: QuestionnaireFormPage[];
+  readonly activePage: number;
+  readonly onNextPage: () => void;
+  readonly onPrevPage: () => void;
 }
 
 export type QuestionnaireFormState =
@@ -131,206 +77,201 @@ export type QuestionnaireFormState =
   | QuestionnaireFormSinglePageState
   | QuestionnaireFormPaginationState;
 
-export function useQuestionnaireForm(props: UseQuestionnaireFormProps): Readonly<QuestionnaireFormState> {
-  const questionnaire = useResource(props.questionnaire); // Keep as-is; assume it's Solid-compatible or wraps signal
-  const defaultResponse = useResource(props.defaultValue);
-  const [forceUpdateCount, setForceUpdateCount] = createSignal(0); // Replaces useReducer for forceUpdate
-  const forceUpdate = () => setForceUpdateCount((x) => x + 1);
+export function useQuestionnaireForm(props: UseQuestionnaireFormProps): QuestionnaireFormState {
+  const questionnaire = useResource(() => props.questionnaire);
+  const defaultResponse = useResource(() => props.defaultValue);
 
-  const [state, setState] = createStore<Partial<QuestionnaireFormPaginationState>>({
+  const [state, setState] = createStore<{
+    questionnaire?: Questionnaire;
+    questionnaireResponse?: QuestionnaireResponse;
+    pages?: QuestionnaireFormPage[];
+    activePage: number;
+    loading: boolean;
+  }>({
     activePage: 0,
+    loading: true,
   });
 
-  // Signals for loading states
-  const [loading, setLoading] = createSignal(true);
-
-  // Effect to handle questionnaire loading and state setup
-  createEffect(on(() => questionnaire, (q) => {
-    if (!state.questionnaire && q) {
+  // Load Questionnaire
+  createEffect(() => {
+    const q = questionnaire();
+    if (q) {
       batch(() => {
         setState('questionnaire', q);
         setState('pages', props.disablePagination ? undefined : getPages(q));
-        setLoading(false);
       });
     }
-  }));
+  });
 
-  // Effect for defaultResponse
-  createEffect(on(() => [questionnaire, defaultResponse], ([q, dr]) => {
-    if (q && props.defaultValue && dr && !state.questionnaireResponse) {
-      batch(() => {
-        setState('questionnaireResponse', buildInitialResponse(q, dr));
-        emitChange();
-      });
+  // Load or Create Response
+  createEffect(() => {
+    const q = state.questionnaire;
+    const def = defaultResponse();
+    const defValProp = props.defaultValue;
+
+    if (!q || state.questionnaireResponse) {
+      return;
     }
-  }));
 
-  // Effect for new response
-  createEffect(on(() => questionnaire, (q) => {
-    if (q && !props.defaultValue && !state.questionnaireResponse) {
-      batch(() => {
-        setState('questionnaireResponse', buildInitialResponse(q));
-        emitChange();
-      });
+    if (defValProp) {
+        if (def) {
+            batch(() => {
+                setState('questionnaireResponse', buildInitialResponse(q, def));
+                emitChange();
+            });
+        }
+    } else {
+         batch(() => {
+            setState('questionnaireResponse', buildInitialResponse(q));
+            emitChange();
+         });
     }
-  }));
+  });
 
-  if (loading() || !state.questionnaire || !state.questionnaireResponse) {
-    return { loading: true };
-  }
 
-  function getResponseItemByContext(
-    context: QuestionnaireResponseItem[]
-  ): QuestionnaireResponse | QuestionnaireResponseItem | undefined;
+  // Update loading state
+  createEffect(() => {
+    // It is loading if questionnaire is missing OR if we are waiting for a default response
+    const qMissing = !state.questionnaire;
+    const respMissing = !state.questionnaireResponse;
+    // If defaultValue prop is provided but not loaded yet
+    // const waitingForDefault = props.defaultValue && !defaultResponse;
+    
+    // Actually, simple logic: if we don't have both Q and Resp, we are loading.
+    setState('loading', qMissing || respMissing);
+  });
+
+
   function getResponseItemByContext(
     context: QuestionnaireResponseItem[],
     item?: QuestionnaireItem
-  ): QuestionnaireResponseItem | undefined;
-  function getResponseItemByContext(
-    context: QuestionnaireResponseItem[],
-    item?: QuestionnaireItem
-  ): QuestionnaireResponse | QuestionnaireResponseItem | undefined {
+  ): QuestionnaireResponseItem | undefined {
     let currentItem: QuestionnaireResponse | QuestionnaireResponseItem | undefined = state.questionnaireResponse;
+    // Navigate down the context
     for (const contextElement of context) {
       currentItem = currentItem?.item?.find((i) =>
         contextElement.id ? i.id === contextElement.id : i.linkId === contextElement.linkId
       );
     }
-    if (item) {
-      currentItem = currentItem?.item?.find((i) => i.linkId === item.linkId);
+    // Find the specific item if requested
+    if (item && currentItem) {
+      currentItem = (currentItem as QuestionnaireResponseItem | QuestionnaireResponse).item?.find((i) => i.linkId === item.linkId);
     }
-    return currentItem;
-  }
-
-  function onNextPage(): void {
-    setState('activePage', (prev) => (prev ?? 0) + 1);
-    forceUpdate();
-  }
-
-  function onPrevPage(): void {
-    setState('activePage', (prev) => (prev ?? 0) - 1);
-    forceUpdate();
-  }
-
-  function onAddGroup(context: QuestionnaireResponseItem[], item: QuestionnaireItem): void {
-    const responseItem = getResponseItemByContext(context);
-    if (responseItem) {
-      batch(() => {
-        if (!responseItem.item) responseItem.item = [];
-        responseItem.item.push(buildInitialResponseItem(item));
-        setState('questionnaireResponse', { ...state.questionnaireResponse }); // Trigger reactivity
-        emitChange();
-      });
-    }
-  }
-
-  function onAddAnswer(context: QuestionnaireResponseItem[], item: QuestionnaireItem): void {
-    const currentItem = getResponseItemByContext(context, item);
-    if (currentItem) {
-      batch(() => {
-        if (!currentItem.answer) currentItem.answer = [];
-        currentItem.answer.push({});
-        setState('questionnaireResponse', { ...state.questionnaireResponse });
-        emitChange();
-      });
-    }
-  }
-
-  function onChangeAnswer(
-    context: QuestionnaireResponseItem[],
-    item: QuestionnaireItem,
-    answer: QuestionnaireResponseItemAnswer[]
-  ): void {
-    const currentItem = getResponseItemByContext(context, item);
-    if (currentItem) {
-      batch(() => {
-        currentItem.answer = answer;
-        setState('questionnaireResponse', { ...state.questionnaireResponse });
-        emitChange();
-      });
-    }
-  }
-
-  function onChangeSignature(signature: Signature | undefined): void {
-    const currentResponse = state.questionnaireResponse;
-    if (!currentResponse) {
-      return;
-    }
-    batch(() => {
-      if (signature) {
-        currentResponse.extension = currentResponse.extension ?? [];
-        currentResponse.extension = currentResponse.extension.filter(
-          (ext) => ext.url !== QUESTIONNAIRE_SIGNATURE_RESPONSE_URL
-        );
-        currentResponse.extension.push({
-          url: QUESTIONNAIRE_SIGNATURE_RESPONSE_URL,
-          valueSignature: signature,
-        });
-      } else {
-        currentResponse.extension = currentResponse.extension?.filter(
-          (ext) => ext.url !== QUESTIONNAIRE_SIGNATURE_RESPONSE_URL
-        );
-      }
-      setState('questionnaireResponse', { ...state.questionnaireResponse });
-      emitChange();
-    });
-  }
-
-  function updateCalculatedExpressions(): void {
-    const questionnaire = state.questionnaire;
-    if (questionnaire?.item) {
-      const response = state.questionnaireResponse as QuestionnaireResponse;
-      evaluateCalculatedExpressionsInQuestionnaire(questionnaire.item, response);
-    }
+    return currentItem as QuestionnaireResponseItem | undefined;
   }
 
   function emitChange(): void {
     const currentResponse = state.questionnaireResponse;
-    if (!currentResponse) {
+    if (!currentResponse || !state.questionnaire) {
       return;
     }
-    updateCalculatedExpressions();
-    forceUpdate();
+    
+    if (state.questionnaire.item) {
+       evaluateCalculatedExpressionsInQuestionnaire(state.questionnaire.item, currentResponse);
+    }
+    
     props.onChange?.(currentResponse);
+    // Force reactivity update on the specific path if needed, but setState on store usually handles it.
+    // Since we mutate the object inside logic below, we might need to reconcile or set state.
+    // Solid's createStore creates a deep proxy. Direct mutation of the proxy works!
+    // But `state.questionnaireResponse` is a proxy.
   }
 
-  const baseState = {
-    loading: false,
-    questionnaire: state.questionnaire,
-    questionnaireResponse: state.questionnaireResponse,
-    subject: props.subject,
-    encounter: props.encounter,
+  // --- Actions ---
+
+  const onNextPage = () => setState('activePage', (p) => p + 1);
+  const onPrevPage = () => setState('activePage', (p) => p - 1);
+
+  const onAddGroup = (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => {
+    // context elements are likely proxies if they come from the UI reading the store.
+    // We need to match them.
+    // Ideally we traverse the store.
+    // For simplicity, we can rely on reference or ID matching if structure matches.
+    
+    // We will use the implementation that traverses the store state
+    // To modify the store, we should use setState path syntax or produce, 
+    // BUT since 'state' is a mutable proxy, we can just mutate it if we find the node in the proxy graph.
+    // However, `getResponseItemByContext` walks the proxy.
+    const responseItem = getResponseItemByContext(context);
+    if (responseItem) {
+        if (!responseItem.item) {
+             // responseItem is a proxy, so this assignment triggers reactivity
+             responseItem.item = []; 
+        }
+        responseItem.item.push(buildInitialResponseItem(item));
+        emitChange();
+    }
+  };
+
+  const onAddAnswer = (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => {
+    const currentItem = getResponseItemByContext(context, item);
+    if (currentItem) {
+      if (!currentItem.answer) currentItem.answer = [];
+      currentItem.answer.push({});
+      emitChange();
+    }
+  };
+
+  const onChangeAnswer = (
+    context: QuestionnaireResponseItem[],
+    item: QuestionnaireItem,
+    answer: QuestionnaireResponseItemAnswer[]
+  ) => {
+    const currentItem = getResponseItemByContext(context, item);
+    if (currentItem) {
+      currentItem.answer = answer;
+      emitChange();
+    }
+  };
+
+  const onChangeSignature = (signature: Signature | undefined) => {
+     // We can modify state.questionnaireResponse directly as it is a proxy
+     const resp = state.questionnaireResponse;
+     if (!resp) return;
+
+     if (signature) {
+        const ext = (resp.extension || []).filter((e) => e.url !== QUESTIONNAIRE_SIGNATURE_RESPONSE_URL);
+        ext.push({ url: QUESTIONNAIRE_SIGNATURE_RESPONSE_URL, valueSignature: signature });
+        resp.extension = ext;
+     } else {
+        resp.extension = (resp.extension || []).filter((e) => e.url !== QUESTIONNAIRE_SIGNATURE_RESPONSE_URL);
+     }
+     emitChange();
+  };
+
+
+  // derived accessors
+  
+  // We return the store directly (masked as the interface).
+  // This works because the interface expects properties, and the store has properties (which are getters).
+  // We just need to add the methods and calculated properties.
+  
+  // Actually, we can return a merged object.
+  return {
+    get loading() { return state.loading; },
+    get questionnaire() { return state.questionnaire!; },
+    get questionnaireResponse() { return state.questionnaireResponse!; },
+    get pages() { return state.pages!; },
+    get activePage() { return state.activePage; },
+    get pagination() { return !!state.pages; },
+    get subject() { return props.subject; },
+    get encounter() { return props.encounter; },
+    
+    get items() {
+        return getItemsForPage(state.questionnaire, state.pages, state.activePage);
+    },
+    get responseItems() {
+        return getResponseItemsForPage(state.questionnaireResponse, state.pages, state.activePage);
+    },
+
+    onNextPage,
+    onPrevPage,
     onAddGroup,
     onAddAnswer,
     onChangeAnswer,
     onChangeSignature,
-  };
-
-  if (state.pages) {
-    return {
-      ...baseState,
-      pagination: true,
-      pages: state.pages,
-      activePage: state.activePage,
-      items: getItemsForPage(state.questionnaire, state.pages, state.activePage),
-      responseItems: getResponseItemsForPage(
-        state.questionnaireResponse,
-        state.pages,
-        state.activePage
-      ),
-      onNextPage,
-      onPrevPage,
-    } as QuestionnaireFormPaginationState;
-  } else {
-    return {
-      ...baseState,
-      pagination: false,
-      items: getItemsForPage(state.questionnaire, undefined, 0),
-      responseItems: getResponseItemsForPage(state.questionnaireResponse, undefined, 0),
-    } as QuestionnaireFormSinglePageState;
-  }
+  } as unknown as QuestionnaireFormState;
 }
-
 
 function getPages(questionnaire: Questionnaire): QuestionnaireFormPage[] | undefined {
   if (!questionnaire?.item) {
@@ -351,22 +292,24 @@ function getPages(questionnaire: Questionnaire): QuestionnaireFormPage[] | undef
 }
 
 function getItemsForPage(
-  questionnaire: Questionnaire,
+  questionnaire: Questionnaire | undefined,
   pages: QuestionnaireFormPage[] | undefined,
   activePage = 0
 ): QuestionnaireItem[] {
-  if (pages && questionnaire?.item?.[activePage]) {
+  if (!questionnaire) return [];
+  if (pages && questionnaire.item?.[activePage]) {
     return [questionnaire.item[activePage]];
   }
   return questionnaire.item ?? [];
 }
 
 function getResponseItemsForPage(
-  questionnaireResponse: QuestionnaireResponse,
+  questionnaireResponse: QuestionnaireResponse | undefined,
   pages: QuestionnaireFormPage[] | undefined,
   activePage = 0
 ): QuestionnaireResponseItem[] {
-  if (pages && questionnaireResponse?.item?.[activePage]) {
+  if (!questionnaireResponse) return [];
+  if (pages && questionnaireResponse.item?.[activePage]) {
     return [questionnaireResponse.item[activePage]];
   }
   return questionnaireResponse.item ?? [];

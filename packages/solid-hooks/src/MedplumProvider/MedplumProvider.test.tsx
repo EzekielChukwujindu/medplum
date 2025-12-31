@@ -3,9 +3,9 @@
 import { ProfileResource } from '@medplum/core';
 import { ClientStorage, MemoryStorage, MockAsyncClientStorage, getDisplayString, sleep } from '@medplum/core';
 import { FhirRouter, MemoryRepository } from '@medplum/fhir-router';
-import { MockClient, MockFetchClient, createFakeJwt } from '@medplum/mock';
+import { MockClient, MockFetchClient} from '@medplum/mock';
 import { render, screen } from '@solidjs/testing-library';
-import { createEffect, createSignal, onMount, type JSX } from 'solid-js';
+import { type JSX } from 'solid-js';
 import { describe, expect, test, vi } from 'vitest';
 import { MedplumProvider } from './MedplumProvider';
 import { useMedplum, useMedplumContext, useMedplumNavigate, useMedplumProfile } from './MedplumProvider.context';
@@ -108,7 +108,7 @@ describe('MedplumProvider', () => {
       const repo = new MemoryRepository();
       const client = new MockFetchClient(router, repo, baseUrl);
       const medplum = new MockClient({ storage, mockFetchOverride: { router, repo, client } });
-      const mockFetchSpy = vi.spyOn(client, 'mockFetch');
+      // const mockFetchSpy = vi.spyOn(client, 'mockFetch');
       const dispatchEventSpy = vi.spyOn(medplum, 'dispatchEvent');
 
       render(() => (

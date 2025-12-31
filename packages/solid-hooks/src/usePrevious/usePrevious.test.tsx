@@ -3,7 +3,8 @@
 import { MockClient } from '@medplum/mock';
 import { render, screen } from '@solidjs/testing-library';
 import { createSignal, JSX } from 'solid-js';
-import { MemoryRouter } from '@solidjs/router'; // Assuming Solid Router equivalent
+import { MemoryRouter } from '@solidjs/router';
+import { describe, test, expect, beforeAll } from 'vitest';
 import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
 import { usePrevious } from './usePrevious';
 
@@ -12,8 +13,8 @@ interface TestComponentProps {
 }
 
 function TestComponent(props: TestComponentProps): JSX.Element {
-  const prevVal = usePrevious(props.value);
-  return <div data-testid="test-component">{prevVal?.toString() ?? 'no value'}</div>;
+  const prevVal = usePrevious(() => props.value);
+  return <div data-testid="test-component">{prevVal()?.toString() ?? 'no value'}</div>;
 }
 
 describe('usePrevious', () => {
@@ -36,7 +37,7 @@ describe('usePrevious', () => {
   }
 
   test('Returns the value from the previous render', () => {
-    const { result, setVal } = setup(false);
+    const { setVal } = setup(false);
     
     let el = screen.getByTestId('test-component');
     expect(el).toBeInTheDocument();

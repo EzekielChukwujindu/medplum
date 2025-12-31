@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { createMemo, type Accessor } from 'solid-js';
+
 // Maintain a cache of urls to avoid unnecessary re-download of attachments
 // The following is a workaround for the fact that each request to a resource containing a Binary data reference
 // returns a NEW signed S3 URL for each bypassing the native browser caching mechanism
@@ -19,49 +21,52 @@ const urls = new Map<string, string>();
  * * @param binaryUrl - The original signed S3 URL.
  * @returns A cached URL if valid, otherwise the original URL.
  */
-export const useCachedBinaryUrl = (binaryUrl: string | undefined): string | undefined => {
-  if (!binaryUrl) {
-    return undefined;
-  }
-
-  const binaryResourceUrl = binaryUrl.split('?')[0];
-  if (!binaryResourceUrl) {
-    return binaryUrl;
-  }
-
-  // Check if the binaryUrl is a presigned S3 URL
-  let binaryUrlSearchParams: URLSearchParams;
-  try {
-    binaryUrlSearchParams = new URLSearchParams(new URL(binaryUrl).search);
-  } catch (_err) {
-    return binaryUrl;
-  }
-
-  if (!binaryUrlSearchParams.has('Key-Pair-Id') || !binaryUrlSearchParams.has('Signature')) {
-    return binaryUrl;
-  }
-
-  // https://stackoverflow.com/questions/23929145/how-to-test-if-a-given-time-stamp-is-in-seconds-or-milliseconds
-  const binaryUrlExpires = binaryUrlSearchParams.get('Expires');
-  if (!binaryUrlExpires || binaryUrlExpires.length > 13) {
-    // Expires is expected to be in seconds, not milliseconds
-    return binaryUrl;
-  }
-
-  const cachedUrl = urls.get(binaryResourceUrl);
-  if (cachedUrl) {
-    const searchParams = new URLSearchParams(new URL(cachedUrl).search);
-
-    // This is fairly brittle as it relies on the current structure of the Medplum returned URL
-    const expires = searchParams.get('Expires');
-
-    // `expires` is in seconds, Date.now() is in ms
-    // Add padding to mitigate expiration between time of check and time of use
-    if (expires && Number.parseInt(expires, 10) * 1000 - 5_000 > Date.now()) {
-      return cachedUrl;
+export const useCachedBinaryUrl = (binaryUrl: string | undefined | Accessor<string | undefined>): Accessor<string | undefined> => {
+  return createMemo(() => {
+    const url = typeof binaryUrl === 'function' ? (binaryUrl as Accessor<string | undefined>)() : binaryUrl;
+    if (!url) {
+      return undefined;
     }
-  }
 
-  urls.set(binaryResourceUrl, binaryUrl);
-  return binaryUrl;
+    const binaryResourceUrl = url.split('?')[0];
+    if (!binaryResourceUrl) {
+      return url;
+    }
+
+    // Check if the binaryUrl is a presigned S3 URL
+    let binaryUrlSearchParams: URLSearchParams;
+    try {
+      binaryUrlSearchParams = new URLSearchParams(new URL(url).search);
+    } catch (_err) {
+      return url;
+    }
+
+    if (!binaryUrlSearchParams.has('Key-Pair-Id') || !binaryUrlSearchParams.has('Signature')) {
+      return url;
+    }
+
+    // https://stackoverflow.com/questions/23929145/how-to-test-if-a-given-time-stamp-is-in-seconds-or-milliseconds
+    const binaryUrlExpires = binaryUrlSearchParams.get('Expires');
+    if (!binaryUrlExpires || binaryUrlExpires.length > 13) {
+      // Expires is expected to be in seconds, not milliseconds
+      return url;
+    }
+
+    const cachedUrl = urls.get(binaryResourceUrl);
+    if (cachedUrl) {
+      const searchParams = new URLSearchParams(new URL(cachedUrl).search);
+
+      // This is fairly brittle as it relies on the current structure of the Medplum returned URL
+      const expires = searchParams.get('Expires');
+
+      // `expires` is in seconds, Date.now() is in ms
+      // Add padding to mitigate expiration between time of check and time of use
+      if (expires && Number.parseInt(expires, 10) * 1000 - 5_000 > Date.now()) {
+        return cachedUrl;
+      }
+    }
+
+    urls.set(binaryResourceUrl, url);
+    return url;
+  });
 };

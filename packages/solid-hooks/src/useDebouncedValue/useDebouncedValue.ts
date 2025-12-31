@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { createEffect, createSignal, onCleanup } from 'solid-js';
+import { createEffect, createSignal, onCleanup, type Accessor } from 'solid-js';
 
 export type UseDebouncedValueOptions = {
   /** Whether the first update to `value` should be immediate or not */
@@ -16,11 +16,14 @@ export type UseDebouncedValueOptions = {
  * @returns An array tuple of `[debouncedValue, cancelFn]`.
  */
 export function useDebouncedValue<T = any>(
-  value: T,
+  value: T | Accessor<T>,
   waitMs: number,
   options: UseDebouncedValueOptions = { leading: false }
-): [T, () => void] {
-  const [debouncedValue, setDebouncedValue] = createSignal(value);
+): [Accessor<T>, () => void] {
+  // Resolve initial value
+  const initialValue = typeof value === 'function' ? (value as Accessor<T>)() : value;
+  const [debouncedValue, setDebouncedValue] = createSignal(initialValue);
+  
   let mounted = false;
   let timeoutRef: ReturnType<typeof setTimeout> | undefined;
   let cooldownRef = false;
@@ -33,7 +36,7 @@ export function useDebouncedValue<T = any>(
 
   createEffect(() => {
     // Access value to track it
-    const currentValue = value;
+    const currentValue = typeof value === 'function' ? (value as Accessor<T>)() : value;
 
     if (mounted) {
       if (!cooldownRef && options.leading) {
@@ -53,6 +56,6 @@ export function useDebouncedValue<T = any>(
 
   onCleanup(cancel);
 
-  // We return a getter for the first element to maintain reactivity in Solid
-  return [debouncedValue(), cancel] as [T, () => void];
+  // Return the accessor directly
+  return [debouncedValue, cancel];
 }

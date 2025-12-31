@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { allOk, operationOutcomeToString, sleep } from '@medplum/core';
+import { operationOutcomeToString, sleep } from '@medplum/core';
 import { MockClient } from '@medplum/mock';
 import { render, screen, waitFor } from '@solidjs/testing-library';
 import { createSignal, JSX } from 'solid-js';
 import { MemoryRouter } from '@solidjs/router';
+import { describe, test, expect, beforeAll, vi } from 'vitest';
 import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
 import { useSearch } from './useSearch';
 
@@ -15,9 +16,9 @@ function TestComponent(props: { name: string }): JSX.Element {
         const [bundle, loading, outcome] = useSearch('Patient', { name: props.name });
         return (
           <>
-            <div data-testid="bundle">{JSON.stringify(bundle)}</div>
-            <div data-testid="loading">{loading.toString()}</div>
-            <div data-testid="outcome">{outcome && operationOutcomeToString(outcome)}</div>
+            <div data-testid="bundle">{JSON.stringify(bundle())}</div>
+            <div data-testid="loading">{loading().toString()}</div>
+            <div data-testid="outcome">{outcome() && operationOutcomeToString(outcome()!)}</div>
           </>
         );
       })()}
@@ -27,7 +28,7 @@ function TestComponent(props: { name: string }): JSX.Element {
 
 describe('useSearch hooks', () => {
   beforeAll(() => {
-    console.error = jest.fn();
+    console.error = vi.fn();
   });
 
   test('Happy path', async () => {
@@ -48,7 +49,7 @@ describe('useSearch hooks', () => {
 
   test('Debounced search', async () => {
     const medplum = new MockClient();
-    const medplumSearch = jest.spyOn(medplum, 'search');
+    const medplumSearch = vi.spyOn(medplum, 'search');
     const [name, setName] = createSignal('bart');
 
     render(() => (

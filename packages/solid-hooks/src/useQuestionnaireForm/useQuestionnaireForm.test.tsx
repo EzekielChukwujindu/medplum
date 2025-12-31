@@ -6,16 +6,12 @@ import type {
   QuestionnaireResponse,
   QuestionnaireResponseItem,
 } from '@medplum/fhirtypes';
-import { MockClient } from '@medplum/mock';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
+import { describe, test, expect, vi } from 'vitest';
 import type { QuestionnaireFormLoadedState, QuestionnaireFormPaginationState } from './useQuestionnaireForm';
 import { useQuestionnaireForm } from './useQuestionnaireForm';
 
 describe('useQuestionnaireForm', () => {
-  const medplum = new MockClient();
-  const wrapper = ({ children }) => <MedplumProvider medplum={medplum}>{children}</MedplumProvider>;
-
   test('Pass by value', async () => {
     const questionnaire = {
       resourceType: 'Questionnaire',
@@ -29,8 +25,8 @@ describe('useQuestionnaireForm', () => {
         },
       ],
     } as const;
-    const onChange = jest.fn();
-    const { container } = render(() => {
+    const onChange = vi.fn();
+    render(() => {
       const result = useQuestionnaireForm({ questionnaire, onChange });
       if (result.loading) return <div data-testid="loading">true</div>;
       const state = result as QuestionnaireFormLoadedState;
@@ -92,7 +88,7 @@ describe('useQuestionnaireForm', () => {
         },
       ],
     };
-    const { container } = render(() => {
+    render(() => {
       const result = useQuestionnaireForm({ questionnaire, defaultValue });
       if (result.loading) return <div data-testid="loading">true</div>;
       const state = result as QuestionnaireFormLoadedState;
@@ -158,7 +154,7 @@ describe('useQuestionnaireForm', () => {
       ],
     } as const;
 
-    const { container } = render(() => {
+    render(() => {
       const result = useQuestionnaireForm({ questionnaire });
       if (result.loading) return <div data-testid="loading">true</div>;
       const state = result as QuestionnaireFormPaginationState;
@@ -206,7 +202,7 @@ describe('useQuestionnaireForm', () => {
       ],
     };
 
-    const { container } = render(() => {
+    render(() => {
       const result = useQuestionnaireForm({ questionnaire });
       if (result.loading) return <div data-testid="loading">true</div>;
       const state = result as QuestionnaireFormLoadedState;
@@ -255,7 +251,7 @@ describe('useQuestionnaireForm', () => {
       ],
     };
 
-    const { container } = render(() => {
+    render(() => {
       const result = useQuestionnaireForm({ questionnaire });
       if (result.loading) return <div data-testid="loading">true</div>;
       const state = result as QuestionnaireFormLoadedState;
@@ -326,7 +322,7 @@ describe('useQuestionnaireForm', () => {
       ],
     } as const;
 
-    const { container } = render(() => {
+    render(() => {
       const result = useQuestionnaireForm({ questionnaire });
       if (result.loading) return <div data-testid="loading">true</div>;
       const state = result as QuestionnaireFormLoadedState;
@@ -378,7 +374,7 @@ describe('useQuestionnaireForm', () => {
       ],
     } as const;
 
-    const { container } = render(() => {
+    render(() => {
       const result = useQuestionnaireForm({ questionnaire });
       if (result.loading) return <div data-testid="loading">true</div>;
       const state = result as QuestionnaireFormLoadedState;
