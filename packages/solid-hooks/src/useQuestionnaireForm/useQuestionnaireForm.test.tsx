@@ -8,9 +8,9 @@ import type {
 } from '@medplum/fhirtypes';
 import { MockClient } from '@medplum/mock';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { createSignal, Show, type JSX } from 'solid-js';
+import { Show, type JSX } from 'solid-js';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import type { QuestionnaireFormLoadedState, QuestionnaireFormPaginationState, QuestionnaireFormState } from './useQuestionnaireForm';
+import type { QuestionnaireFormLoadedState, QuestionnaireFormPaginationState} from './useQuestionnaireForm';
 import { useQuestionnaireForm, type UseQuestionnaireFormProps } from './useQuestionnaireForm';
 import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
 
