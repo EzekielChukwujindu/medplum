@@ -61,9 +61,9 @@ describe('useCachedBinaryUrl', () => {
 
   test('Reuse cached URL', () => {
     const url1 = createUrl('https://example.com/reused.jpg', '123', '456', nowInSeconds() + 100);
-    // Use a signal to simulate prop changes - SolidJS doesn't have rerender
+    // Pass the signal accessor directly to enable reactivity tracking
     const [binaryUrl, setBinaryUrl] = createSignal<string | undefined>(url1);
-    const { result } = renderHook(() => useCachedBinaryUrl(binaryUrl()));
+    const { result } = renderHook(() => useCachedBinaryUrl(binaryUrl));
     expect(result()).toBe(url1);
 
     // Next URL is 100 seconds in the future
@@ -75,9 +75,9 @@ describe('useCachedBinaryUrl', () => {
 
   test('Expired url', () => {
     const url1 = createUrl('https://example.com/expired.jpg', '123', '456', nowInSeconds() - 100);
-    // Use a signal to simulate prop changes - SolidJS doesn't have rerender
+    // Pass the signal accessor directly to enable reactivity tracking
     const [binaryUrl, setBinaryUrl] = createSignal<string | undefined>(url1);
-    const { result } = renderHook(() => useCachedBinaryUrl(binaryUrl()));
+    const { result } = renderHook(() => useCachedBinaryUrl(binaryUrl));
     expect(result()).toBe(url1);
 
     // First URL is expired

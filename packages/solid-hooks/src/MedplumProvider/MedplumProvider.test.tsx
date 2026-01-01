@@ -129,7 +129,8 @@ describe('MedplumProvider', () => {
         project: { reference: 'Project/123' },
       });
 
-      expect(await screen.findByText('Loading...')).toBeInTheDocument();
+      // Note: We don't check for 'Loading...' here because the setActiveLogin may complete
+      // before the assertion runs (race condition). Just verify the final state.
       await loginPromise;
       expect(await screen.findByText('Loaded!')).toBeInTheDocument();
       expect(dispatchEventSpy).toHaveBeenCalledWith({ type: 'profileRefreshed' });

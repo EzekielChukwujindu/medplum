@@ -3,7 +3,6 @@
 import { MockClient } from '@medplum/mock';
 import { render, screen } from '@solidjs/testing-library';
 import { createSignal, JSX } from 'solid-js';
-import { MemoryRouter } from '@solidjs/router';
 import { describe, test, expect, beforeAll } from 'vitest';
 import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
 import { usePrevious } from './usePrevious';
@@ -27,11 +26,9 @@ describe('usePrevious', () => {
   function setup(initialValue: boolean) {
     const [val, setVal] = createSignal(initialValue);
     const result = render(() => (
-      <MemoryRouter>
-        <MedplumProvider medplum={medplum}>
-          <TestComponent value={val()} />
-        </MedplumProvider>
-      </MemoryRouter>
+      <MedplumProvider medplum={medplum}>
+        <TestComponent value={val()} />
+      </MedplumProvider>
     ));
     return { result, setVal };
   }

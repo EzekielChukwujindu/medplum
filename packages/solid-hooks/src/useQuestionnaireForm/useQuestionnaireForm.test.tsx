@@ -6,12 +6,47 @@ import type {
   QuestionnaireResponse,
   QuestionnaireResponseItem,
 } from '@medplum/fhirtypes';
+import { MockClient } from '@medplum/mock';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { describe, test, expect, vi } from 'vitest';
-import type { QuestionnaireFormLoadedState, QuestionnaireFormPaginationState } from './useQuestionnaireForm';
-import { useQuestionnaireForm } from './useQuestionnaireForm';
+import { createSignal, Show, type JSX } from 'solid-js';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import type { QuestionnaireFormLoadedState, QuestionnaireFormPaginationState, QuestionnaireFormState } from './useQuestionnaireForm';
+import { useQuestionnaireForm, type UseQuestionnaireFormProps } from './useQuestionnaireForm';
+import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
+
+// Helper component that properly uses the hook with Show for conditional rendering
+function QuestionnaireFormTestComponent(props: {
+  hookProps: UseQuestionnaireFormProps;
+  children: (state: QuestionnaireFormLoadedState) => JSX.Element;
+}): JSX.Element {
+  const result = useQuestionnaireForm(props.hookProps);
+  return (
+    <Show when={!result.loading} fallback={<div data-testid="loading">true</div>}>
+      {props.children(result as QuestionnaireFormLoadedState)}
+    </Show>
+  );
+}
+
+// Helper for pagination tests
+function QuestionnaireFormPaginationTestComponent(props: {
+  hookProps: UseQuestionnaireFormProps;
+  children: (state: QuestionnaireFormPaginationState) => JSX.Element;
+}): JSX.Element {
+  const result = useQuestionnaireForm(props.hookProps);
+  return (
+    <Show when={!result.loading} fallback={<div data-testid="loading">true</div>}>
+      {props.children(result as QuestionnaireFormPaginationState)}
+    </Show>
+  );
+}
 
 describe('useQuestionnaireForm', () => {
+  let medplum: MockClient;
+
+  beforeEach(() => {
+    medplum = new MockClient();
+  });
+
   test('Pass by value', async () => {
     const questionnaire = {
       resourceType: 'Questionnaire',
@@ -26,26 +61,28 @@ describe('useQuestionnaireForm', () => {
       ],
     } as const;
     const onChange = vi.fn();
-    render(() => {
-      const result = useQuestionnaireForm({ questionnaire, onChange });
-      if (result.loading) return <div data-testid="loading">true</div>;
-      const state = result as QuestionnaireFormLoadedState;
-      return (
-        <div>
-          <div data-testid="loading">false</div>
-          <div data-testid="questionnaire-id">{state.questionnaire.id}</div>
-          <div data-testid="response-status">{state.questionnaireResponse.status}</div>
-          <div data-testid="response-item-linkId">{state.questionnaireResponse.item?.[0]?.linkId}</div>
-          <div data-testid="response-item-text">{state.questionnaireResponse.item?.[0]?.text}</div>
-          <button
-            data-testid="change-answer"
-            onClick={() => state.onChangeAnswer([], questionnaire.item[0], [{ valueString: 'Test Answer' }])}
-          >
-            Change Answer
-          </button>
-        </div>
-      );
-    });
+    
+    render(() => (
+      <MedplumProvider medplum={medplum}>
+        <QuestionnaireFormTestComponent hookProps={{ questionnaire, onChange }}>
+          {(state) => (
+            <div>
+              <div data-testid="loading">false</div>
+              <div data-testid="questionnaire-id">{state.questionnaire.id}</div>
+              <div data-testid="response-status">{state.questionnaireResponse.status}</div>
+              <div data-testid="response-item-linkId">{state.questionnaireResponse.item?.[0]?.linkId}</div>
+              <div data-testid="response-item-text">{state.questionnaireResponse.item?.[0]?.text}</div>
+              <button
+                data-testid="change-answer"
+                onClick={() => state.onChangeAnswer([], questionnaire.item[0], [{ valueString: 'Test Answer' }])}
+              >
+                Change Answer
+              </button>
+            </div>
+          )}
+        </QuestionnaireFormTestComponent>
+      </MedplumProvider>
+    ));
 
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
     expect(onChange).toHaveBeenCalledTimes(1);
@@ -56,14 +93,11 @@ describe('useQuestionnaireForm', () => {
     onChange.mockClear();
 
     fireEvent.click(screen.getByTestId('change-answer'));
-    await waitFor(() => {
-      // In Solid, reactivity might need waitFor to propagate
-      // Assuming onChange is called synchronously, but wait for any re-render
-    });
+    await waitFor(() => {});
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
-  test('Start with existing response', () => {
+  test('Start with existing response', async () => {
     const questionnaire: Questionnaire = {
       resourceType: 'Questionnaire',
       id: 'test',
@@ -88,21 +122,23 @@ describe('useQuestionnaireForm', () => {
         },
       ],
     };
-    render(() => {
-      const result = useQuestionnaireForm({ questionnaire, defaultValue });
-      if (result.loading) return <div data-testid="loading">true</div>;
-      const state = result as QuestionnaireFormLoadedState;
-      return (
-        <div>
-          <div data-testid="loading">false</div>
-          <div data-testid="questionnaire-id">{state.questionnaire.id}</div>
-          <div data-testid="response-status">{state.questionnaireResponse.status}</div>
-          <div data-testid="response-item-answer">{state.questionnaireResponse.item?.[0]?.answer?.[0]?.valueString}</div>
-        </div>
-      );
-    });
+    
+    render(() => (
+      <MedplumProvider medplum={medplum}>
+        <QuestionnaireFormTestComponent hookProps={{ questionnaire, defaultValue }}>
+          {(state) => (
+            <div>
+              <div data-testid="loading">false</div>
+              <div data-testid="questionnaire-id">{state.questionnaire.id}</div>
+              <div data-testid="response-status">{state.questionnaireResponse.status}</div>
+              <div data-testid="response-item-answer">{state.questionnaireResponse.item?.[0]?.answer?.[0]?.valueString}</div>
+            </div>
+          )}
+        </QuestionnaireFormTestComponent>
+      </MedplumProvider>
+    ));
 
-    expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
     expect(screen.getByTestId('questionnaire-id')).toHaveTextContent('test');
     expect(screen.getByTestId('response-status')).toHaveTextContent('in-progress');
     expect(screen.getByTestId('response-item-answer')).toHaveTextContent('Existing Answer');
@@ -118,56 +154,38 @@ describe('useQuestionnaireForm', () => {
           linkId: 'group1',
           text: 'Group 1',
           type: 'group',
-          item: [
-            {
-              linkId: 'question1',
-              text: 'Question 1',
-              type: 'string',
+          item: [{ linkId: 'question1', text: 'Question 1', type: 'string' }],
+          extension: [{
+            url: 'http://hl7.org/fhir/StructureDefinition/questionnaire-itemControl',
+            valueCodeableConcept: {
+              coding: [{ system: 'http://hl7.org/fhir/questionnaire-item-control', code: 'page' }],
             },
-          ],
-          extension: [
-            {
-              url: 'http://hl7.org/fhir/StructureDefinition/questionnaire-itemControl',
-              valueCodeableConcept: {
-                coding: [
-                  {
-                    system: 'http://hl7.org/fhir/questionnaire-item-control',
-                    code: 'page',
-                  },
-                ],
-              },
-            },
-          ],
+          }],
         },
         {
           linkId: 'group2',
           text: 'Group 2',
           type: 'group',
-          item: [
-            {
-              linkId: 'question2',
-              text: 'Question 2',
-              type: 'reference',
-            },
-          ],
+          item: [{ linkId: 'question2', text: 'Question 2', type: 'reference' }],
         },
       ],
     } as const;
 
-    render(() => {
-      const result = useQuestionnaireForm({ questionnaire });
-      if (result.loading) return <div data-testid="loading">true</div>;
-      const state = result as QuestionnaireFormPaginationState;
-      return (
-        <div>
-          <div data-testid="loading">false</div>
-          <div data-testid="pagination">{state.pagination ? 'true' : 'false'}</div>
-          <div data-testid="items-linkId">{state.items[0]?.linkId}</div>
-          <button data-testid="next-page" onClick={state.onNextPage}>Next</button>
-          <button data-testid="prev-page" onClick={state.onPrevPage}>Prev</button>
-        </div>
-      );
-    });
+    render(() => (
+      <MedplumProvider medplum={medplum}>
+        <QuestionnaireFormPaginationTestComponent hookProps={{ questionnaire }}>
+          {(state) => (
+            <div>
+              <div data-testid="loading">false</div>
+              <div data-testid="pagination">{state.pagination ? 'true' : 'false'}</div>
+              <div data-testid="items-linkId">{state.items[0]?.linkId}</div>
+              <button data-testid="next-page" onClick={state.onNextPage}>Next</button>
+              <button data-testid="prev-page" onClick={state.onPrevPage}>Prev</button>
+            </div>
+          )}
+        </QuestionnaireFormPaginationTestComponent>
+      </MedplumProvider>
+    ));
 
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
     expect(screen.getByTestId('pagination')).toHaveTextContent('true');
@@ -185,41 +203,32 @@ describe('useQuestionnaireForm', () => {
       resourceType: 'Questionnaire',
       id: 'test',
       status: 'active',
-      item: [
-        {
-          type: 'group',
-          linkId: 'test-group',
-          text: 'Test Group',
-          repeats: true,
-          item: [
-            {
-              type: 'string',
-              linkId: 'test-item',
-              text: 'Test Item',
-            },
-          ],
-        },
-      ],
+      item: [{
+        type: 'group',
+        linkId: 'test-group',
+        text: 'Test Group',
+        repeats: true,
+        item: [{ type: 'string', linkId: 'test-item', text: 'Test Item' }],
+      }],
     };
 
-    render(() => {
-      const result = useQuestionnaireForm({ questionnaire });
-      if (result.loading) return <div data-testid="loading">true</div>;
-      const state = result as QuestionnaireFormLoadedState;
-      return (
-        <div>
-          <div data-testid="loading">false</div>
-          <div data-testid="items-length">{state.items.length}</div>
-          <div data-testid="response-items-length">{state.questionnaireResponse.item?.length}</div>
-          <button
-            data-testid="add-group"
-            onClick={() => state.onAddGroup([], questionnaire.item[0] as QuestionnaireItem)}
-          >
-            Add Group
-          </button>
-        </div>
-      );
-    });
+    render(() => (
+      <MedplumProvider medplum={medplum}>
+        <QuestionnaireFormTestComponent hookProps={{ questionnaire }}>
+          {(state) => (
+            <div>
+              <div data-testid="loading">false</div>
+              <div data-testid="items-length">{state.items.length}</div>
+              <div data-testid="response-items-length">{state.questionnaireResponse.item?.length}</div>
+              <button
+                data-testid="add-group"
+                onClick={() => state.onAddGroup([], questionnaire.item[0] as QuestionnaireItem)}
+              >Add Group</button>
+            </div>
+          )}
+        </QuestionnaireFormTestComponent>
+      </MedplumProvider>
+    ));
 
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
     expect(screen.getByTestId('items-length')).toHaveTextContent('1');
@@ -229,68 +238,55 @@ describe('useQuestionnaireForm', () => {
     await waitFor(() => expect(screen.getByTestId('response-items-length')).toHaveTextContent('2'));
   });
 
-  test('Repeatable groups should maintain separate answers for each group instance', async () => {
+  test('Repeatable groups should maintain separate answers', async () => {
     const questionnaire: Questionnaire = {
       resourceType: 'Questionnaire',
       id: 'test',
       status: 'active',
-      item: [
-        {
-          linkId: 'group1',
-          text: 'Group 1',
-          type: 'group',
-          repeats: true,
-          item: [
-            {
-              linkId: 'question1',
-              text: 'Question 1',
-              type: 'string',
-            },
-          ],
-        },
-      ],
+      item: [{
+        linkId: 'group1',
+        text: 'Group 1',
+        type: 'group',
+        repeats: true,
+        item: [{ linkId: 'question1', text: 'Question 1', type: 'string' }],
+      }],
     };
 
-    render(() => {
-      const result = useQuestionnaireForm({ questionnaire });
-      if (result.loading) return <div data-testid="loading">true</div>;
-      const state = result as QuestionnaireFormLoadedState;
-      return (
-        <div>
-          <div data-testid="loading">false</div>
-          <div data-testid="items-length">{state.items.length}</div>
-          <div data-testid="response-items-length">{state.questionnaireResponse.item?.length}</div>
-          <div data-testid="group1-answer">{state.questionnaireResponse.item?.[0]?.item?.[0]?.answer?.[0]?.valueString}</div>
-          <div data-testid="group2-answer">{state.questionnaireResponse.item?.[1]?.item?.[0]?.answer?.[0]?.valueString}</div>
-          <button
-            data-testid="add-group"
-            onClick={() => state.onAddGroup([], questionnaire.item?.[0] as QuestionnaireItem)}
-          >
-            Add Group
-          </button>
-          <button
-            data-testid="change-group1"
-            onClick={() => {
-              const group1 = state.questionnaireResponse.item?.[0] as QuestionnaireResponseItem;
-              const questionItem = questionnaire.item?.[0]?.item?.[0] as QuestionnaireItem;
-              state.onChangeAnswer([group1], questionItem, [{ valueString: 'Answer 1' }]);
-            }}
-          >
-            Change Group1
-          </button>
-          <button
-            data-testid="change-group2"
-            onClick={() => {
-              const group2 = state.questionnaireResponse.item?.[1] as QuestionnaireResponseItem;
-              const questionItem = questionnaire.item?.[0]?.item?.[0] as QuestionnaireItem;
-              state.onChangeAnswer([group2], questionItem, [{ valueString: 'Answer 2' }]);
-            }}
-          >
-            Change Group2
-          </button>
-        </div>
-      );
-    });
+    render(() => (
+      <MedplumProvider medplum={medplum}>
+        <QuestionnaireFormTestComponent hookProps={{ questionnaire }}>
+          {(state) => (
+            <div>
+              <div data-testid="loading">false</div>
+              <div data-testid="items-length">{state.items.length}</div>
+              <div data-testid="response-items-length">{state.questionnaireResponse.item?.length}</div>
+              <div data-testid="group1-answer">{state.questionnaireResponse.item?.[0]?.item?.[0]?.answer?.[0]?.valueString}</div>
+              <div data-testid="group2-answer">{state.questionnaireResponse.item?.[1]?.item?.[0]?.answer?.[0]?.valueString}</div>
+              <button
+                data-testid="add-group"
+                onClick={() => state.onAddGroup([], questionnaire.item?.[0] as QuestionnaireItem)}
+              >Add Group</button>
+              <button
+                data-testid="change-group1"
+                onClick={() => {
+                  const group1 = state.questionnaireResponse.item?.[0] as QuestionnaireResponseItem;
+                  const questionItem = questionnaire.item?.[0]?.item?.[0] as QuestionnaireItem;
+                  state.onChangeAnswer([group1], questionItem, [{ valueString: 'Answer 1' }]);
+                }}
+              >Change Group1</button>
+              <button
+                data-testid="change-group2"
+                onClick={() => {
+                  const group2 = state.questionnaireResponse.item?.[1] as QuestionnaireResponseItem;
+                  const questionItem = questionnaire.item?.[0]?.item?.[0] as QuestionnaireItem;
+                  state.onChangeAnswer([group2], questionItem, [{ valueString: 'Answer 2' }]);
+                }}
+              >Change Group2</button>
+            </div>
+          )}
+        </QuestionnaireFormTestComponent>
+      </MedplumProvider>
+    ));
 
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
     expect(screen.getByTestId('items-length')).toHaveTextContent('1');
@@ -312,41 +308,31 @@ describe('useQuestionnaireForm', () => {
       resourceType: 'Questionnaire',
       id: 'test',
       status: 'active',
-      item: [
-        {
-          type: 'string',
-          linkId: 'test-item',
-          text: 'Test Item',
-          repeats: true,
-        },
-      ],
+      item: [{ type: 'string', linkId: 'test-item', text: 'Test Item', repeats: true }],
     } as const;
 
-    render(() => {
-      const result = useQuestionnaireForm({ questionnaire });
-      if (result.loading) return <div data-testid="loading">true</div>;
-      const state = result as QuestionnaireFormLoadedState;
-      return (
-        <div>
-          <div data-testid="loading">false</div>
-          <div data-testid="items-length">{state.items.length}</div>
-          <div data-testid="response-items-length">{state.questionnaireResponse.item?.length}</div>
-          <div data-testid="response-answer-length">{state.questionnaireResponse.item?.[0]?.answer?.length}</div>
-          <button
-            data-testid="change-answer"
-            onClick={() => state.onChangeAnswer([], questionnaire.item[0], [{ valueString: 'Test Answer' }])}
-          >
-            Change Answer
-          </button>
-          <button
-            data-testid="add-answer"
-            onClick={() => state.onAddAnswer([], questionnaire.item[0] as QuestionnaireItem)}
-          >
-            Add Answer
-          </button>
-        </div>
-      );
-    });
+    render(() => (
+      <MedplumProvider medplum={medplum}>
+        <QuestionnaireFormTestComponent hookProps={{ questionnaire }}>
+          {(state) => (
+            <div>
+              <div data-testid="loading">false</div>
+              <div data-testid="items-length">{state.items.length}</div>
+              <div data-testid="response-items-length">{state.questionnaireResponse.item?.length}</div>
+              <div data-testid="response-answer-length">{state.questionnaireResponse.item?.[0]?.answer?.length ?? 0}</div>
+              <button
+                data-testid="change-answer"
+                onClick={() => state.onChangeAnswer([], questionnaire.item[0], [{ valueString: 'Test Answer' }])}
+              >Change Answer</button>
+              <button
+                data-testid="add-answer"
+                onClick={() => state.onAddAnswer([], questionnaire.item[0] as QuestionnaireItem)}
+              >Add Answer</button>
+            </div>
+          )}
+        </QuestionnaireFormTestComponent>
+      </MedplumProvider>
+    ));
 
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
     expect(screen.getByTestId('items-length')).toHaveTextContent('1');
@@ -365,44 +351,30 @@ describe('useQuestionnaireForm', () => {
       resourceType: 'Questionnaire',
       id: 'test',
       status: 'active',
-      item: [
-        {
-          type: 'string',
-          linkId: 'test-item',
-          text: 'Test Item',
-        },
-      ],
+      item: [{ type: 'string', linkId: 'test-item', text: 'Test Item' }],
     } as const;
 
-    render(() => {
-      const result = useQuestionnaireForm({ questionnaire });
-      if (result.loading) return <div data-testid="loading">true</div>;
-      const state = result as QuestionnaireFormLoadedState;
-      const signature = {
-        type: [
-          {
-            system: 'urn:iso-astm:E1762-95:2013',
-            code: '1.2.840.10065.1.12.1.1',
-            display: "Author's Signature",
-          },
-        ],
-        when: '2023-01-01T00:00:00Z',
-        who: { reference: 'Practitioner/test' },
-        data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-      };
-      return (
-        <div>
-          <div data-testid="loading">false</div>
-          <div data-testid="extension-length">{state.questionnaireResponse.extension?.length ?? '0'}</div>
-          <button data-testid="add-signature" onClick={() => state.onChangeSignature(signature)}>
-            Add Signature
-          </button>
-          <button data-testid="remove-signature" onClick={() => state.onChangeSignature(undefined)}>
-            Remove Signature
-          </button>
-        </div>
-      );
-    });
+    const signature = {
+      type: [{ system: 'urn:iso-astm:E1762-95:2013', code: '1.2.840.10065.1.12.1.1', display: "Author's Signature" }],
+      when: '2023-01-01T00:00:00Z',
+      who: { reference: 'Practitioner/test' },
+      data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+    };
+
+    render(() => (
+      <MedplumProvider medplum={medplum}>
+        <QuestionnaireFormTestComponent hookProps={{ questionnaire }}>
+          {(state) => (
+            <div>
+              <div data-testid="loading">false</div>
+              <div data-testid="extension-length">{state.questionnaireResponse.extension?.length ?? '0'}</div>
+              <button data-testid="add-signature" onClick={() => state.onChangeSignature(signature)}>Add Signature</button>
+              <button data-testid="remove-signature" onClick={() => state.onChangeSignature(undefined)}>Remove Signature</button>
+            </div>
+          )}
+        </QuestionnaireFormTestComponent>
+      </MedplumProvider>
+    ));
 
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
     expect(screen.getByTestId('extension-length')).toHaveTextContent('0');

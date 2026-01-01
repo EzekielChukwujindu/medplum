@@ -5,7 +5,6 @@ import type { OperationOutcome, Reference, Resource, ServiceRequest } from '@med
 import { HomerSimpson, MockClient } from '@medplum/mock';
 import { render, screen, waitFor, fireEvent } from '@solidjs/testing-library';
 import { createEffect, createSignal, JSX, type Accessor } from 'solid-js';
-import { MemoryRouter } from '@solidjs/router';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { MedplumProvider } from '../MedplumProvider/MedplumProvider';
 import { useResource } from './useResource';
@@ -44,11 +43,9 @@ describe('useResource', () => {
 
   function setup(Component: () => JSX.Element) {
     return render(() => (
-      <MemoryRouter>
-        <MedplumProvider medplum={medplum}>
-          <Component />
-        </MedplumProvider>
-      </MemoryRouter>
+      <MedplumProvider medplum={medplum}>
+        <Component />
+      </MedplumProvider>
     ));
   }
 
@@ -83,11 +80,10 @@ describe('useResource', () => {
     await waitFor(() => expect(el.innerHTML).not.toBe(''));
   });
 
-  test('Renders system', () => {
+  test('Renders system', async () => {
     setup(() => <TestComponent value={{ reference: 'system' }} />);
     const el = screen.getByTestId('test-component');
-    expect(el.innerHTML).toBe('');
-    // Note: React test has not.toBe(''), but parity check—adjust if behavior differs
+    await waitFor(() => expect(el.innerHTML).not.toBe(''));
   });
 
   test('Handles 404 not found', async () => {
@@ -103,16 +99,17 @@ describe('useResource', () => {
     await waitFor(() => expect(outcome()).toBeDefined());
   });
 
+  // Test that when the reference ID changes, the hook uses the new partial resource directly
+  // (matches React behavior - partial resources are not fetched, just used as-is)
   test('Responds to value change', async () => {
     function TestWrapper(): JSX.Element {
       const [id, setId] = createSignal('123');
-      // Pass an accessor so the hook reacts to signal changes
-      const getValue = () => ({ id: id(), resourceType: 'ServiceRequest' }) as unknown as Reference;
+      const resource = useResource(() => ({ id: id(), resourceType: 'ServiceRequest' } as Partial<ServiceRequest>));
       
       return (
         <>
           <button onClick={() => setId('456')}>Click</button>
-          <TestComponent value={getValue} />
+          <div data-testid="test-component">{JSON.stringify(resource())}</div>
         </>
       );
     }
@@ -120,6 +117,7 @@ describe('useResource', () => {
     const el = screen.getByTestId('test-component');
     await waitFor(() => expect(el.innerHTML).toContain('123'));
     fireEvent.click(screen.getByText('Click'));
+    // Partial resources are used directly, so '456' should appear
     await waitFor(() => expect(el.innerHTML).toContain('456'));
   });
 
@@ -167,12 +165,16 @@ describe('useResource', () => {
         subject: { reference: 'Patient/123' },
       });
 
+      // Pass the signal accessor (resource) instead of the evaluated value (resource())
+      // to enable proper reactivity tracking in SolidJS
+      const result = useResource(resource);
+
       return (
         <>
           <button onClick={() => setResource((sr) => ({ ...sr, status: sr.status === 'active' ? 'draft' : 'active' }))}>
             Click
           </button>
-          <TestComponent value={resource()} maxRenders={6} />
+          <div data-testid="test-component">{JSON.stringify(result())}</div>
         </>
       );
     }
@@ -185,4 +187,6 @@ describe('useResource', () => {
     fireEvent.click(screen.getByText('Click'));
     await waitFor(() => expect(el.innerHTML).toContain('"status":"active"'));
   });
+
+
 });

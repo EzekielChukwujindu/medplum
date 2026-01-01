@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { createEffect, createSignal, untrack, type Accessor } from 'solid-js';
+import { createEffect, createMemo, createSignal, untrack, type Accessor } from 'solid-js';
 import type { MedplumClient } from '@medplum/core';
 import { deepEquals, isReference, isResource, normalizeOperationOutcome } from '@medplum/core';
 import type { OperationOutcome, Reference, Resource } from '@medplum/fhirtypes';
@@ -19,33 +19,32 @@ export function useResource<T extends Resource>(
 ): Accessor<T | undefined> {
   const medplum = useMedplum();
 
-  const getValue = () => (typeof value === 'function' ? (value as Accessor<any>)() : value);
-  const [resource, setResource] = createSignal<T | undefined>(getInitialResource(medplum, getValue()));
+  // Use a memo to ensure we track changes to the value (works for both accessors and static values)
+  const resolvedValue = createMemo(() => 
+    typeof value === 'function' ? (value as Accessor<any>)() : value
+  );
+  
+  const [resource, setResource] = createSignal<T | undefined>(getInitialResource(medplum, resolvedValue()));
 
   createEffect(() => {
-    const currentValue = getValue();
-    if (currentValue) {
-      const reference =
-        typeof currentValue === 'object' && 'reference' in currentValue ? (currentValue.reference as string) : undefined;
-      const resourceType =
-        typeof currentValue === 'object' && 'resourceType' in currentValue ? (currentValue.resourceType as string) : undefined;
-      const id = typeof currentValue === 'object' && 'id' in currentValue ? (currentValue.id as string) : undefined;
-
-      if (resourceType && id) {
-        medplum
-          .readResource(resourceType as any, id)
-          .then((r) => setResourceIfChanged(r as T))
-          .catch(handleError);
-      } else if (reference) {
-        medplum
-          .readReference(currentValue as Reference<T>)
-          .then((r) => setResourceIfChanged(r as T))
-          .catch(handleError);
-      } else if (resourceType) {
-        setResourceIfChanged(currentValue as T);
-      }
+    // Access the memoized value to create dependency tracking
+    const val = resolvedValue();
+    
+    // Match React's logic: get initial resource first
+    const newValue = getInitialResource(medplum, val);
+    
+    // Only fetch if there's no initial value AND it's a Reference
+    if (!newValue && isReference(val)) {
+      medplum
+        .readReference(val as Reference<T>)
+        .then((r) => setResourceIfChanged(r as T))
+        .catch((err) => {
+          setResource(undefined);  // Clear resource on error
+          handleError(err);
+        });
     } else {
-      setResource(undefined);
+      // Use the initial value directly (partial resources, cached resources, etc.)
+      setResourceIfChanged(newValue as T);
     }
   });
 

@@ -12,7 +12,7 @@ import type {
   Signature,
 } from '@medplum/fhirtypes';
 import { batch, createEffect } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { createStore, produce } from 'solid-js/store';
 import { useResource } from '../useResource/useResource';
 import {
   buildInitialResponse,
@@ -78,8 +78,9 @@ export type QuestionnaireFormState =
   | QuestionnaireFormPaginationState;
 
 export function useQuestionnaireForm(props: UseQuestionnaireFormProps): QuestionnaireFormState {
-  const questionnaire = useResource(() => props.questionnaire);
-  const defaultResponse = useResource(() => props.defaultValue);
+  // Pass props directly, not as accessor - creating a new accessor on each render causes infinite loops
+  const questionnaire = useResource(props.questionnaire);
+  const defaultResponse = useResource(props.defaultValue);
 
   const [state, setState] = createStore<{
     questionnaire?: Questionnaire;
@@ -142,23 +143,7 @@ export function useQuestionnaireForm(props: UseQuestionnaireFormProps): Question
   });
 
 
-  function getResponseItemByContext(
-    context: QuestionnaireResponseItem[],
-    item?: QuestionnaireItem
-  ): QuestionnaireResponseItem | undefined {
-    let currentItem: QuestionnaireResponse | QuestionnaireResponseItem | undefined = state.questionnaireResponse;
-    // Navigate down the context
-    for (const contextElement of context) {
-      currentItem = currentItem?.item?.find((i) =>
-        contextElement.id ? i.id === contextElement.id : i.linkId === contextElement.linkId
-      );
-    }
-    // Find the specific item if requested
-    if (item && currentItem) {
-      currentItem = (currentItem as QuestionnaireResponseItem | QuestionnaireResponse).item?.find((i) => i.linkId === item.linkId);
-    }
-    return currentItem as QuestionnaireResponseItem | undefined;
-  }
+  // Note: getResponseItemByContext is replaced by findResponseItemPath for proper store mutations
 
   function emitChange(): void {
     const currentResponse = state.questionnaireResponse;
@@ -182,34 +167,55 @@ export function useQuestionnaireForm(props: UseQuestionnaireFormProps): Question
   const onNextPage = () => setState('activePage', (p) => p + 1);
   const onPrevPage = () => setState('activePage', (p) => p - 1);
 
-  const onAddGroup = (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => {
-    // context elements are likely proxies if they come from the UI reading the store.
-    // We need to match them.
-    // Ideally we traverse the store.
-    // For simplicity, we can rely on reference or ID matching if structure matches.
+  // Helper to find the path to a response item by context
+  function findResponseItemPath(context: QuestionnaireResponseItem[], item?: QuestionnaireItem): (string | number)[] | undefined {
+    const path: (string | number)[] = ['questionnaireResponse'];
+    let current: QuestionnaireResponse | QuestionnaireResponseItem | undefined = state.questionnaireResponse;
     
-    // We will use the implementation that traverses the store state
-    // To modify the store, we should use setState path syntax or produce, 
-    // BUT since 'state' is a mutable proxy, we can just mutate it if we find the node in the proxy graph.
-    // However, `getResponseItemByContext` walks the proxy.
-    const responseItem = getResponseItemByContext(context);
-    if (responseItem) {
-        if (!responseItem.item) {
-             // responseItem is a proxy, so this assignment triggers reactivity
-             responseItem.item = []; 
-        }
-        responseItem.item.push(buildInitialResponseItem(item));
-        emitChange();
+    for (const contextElement of context) {
+      if (!current?.item) return undefined;
+      const idx = current.item.findIndex((i) =>
+        contextElement.id ? i.id === contextElement.id : i.linkId === contextElement.linkId
+      );
+      if (idx === -1) return undefined;
+      path.push('item', idx);
+      current = current.item[idx];
     }
+    
+    if (item && current) {
+      if (!current.item) return undefined;
+      const idx = current.item.findIndex((i) => i.linkId === item.linkId);
+      if (idx === -1) return undefined;
+      path.push('item', idx);
+    }
+    
+    return path;
+  }
+
+  const onAddGroup = (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => {
+    const path = findResponseItemPath(context);
+    if (!path) return;
+    
+    setState(...path as [any], produce((responseItem: QuestionnaireResponseItem | QuestionnaireResponse) => {
+      if (!responseItem.item) {
+        responseItem.item = [];
+      }
+      responseItem.item.push(buildInitialResponseItem(item));
+    }));
+    emitChange();
   };
 
   const onAddAnswer = (context: QuestionnaireResponseItem[], item: QuestionnaireItem) => {
-    const currentItem = getResponseItemByContext(context, item);
-    if (currentItem) {
-      if (!currentItem.answer) currentItem.answer = [];
+    const path = findResponseItemPath(context, item);
+    if (!path) return;
+    
+    setState(...path as [any], produce((currentItem: QuestionnaireResponseItem) => {
+      if (!currentItem.answer) {
+        currentItem.answer = [];
+      }
       currentItem.answer.push({});
-      emitChange();
-    }
+    }));
+    emitChange();
   };
 
   const onChangeAnswer = (
@@ -217,26 +223,27 @@ export function useQuestionnaireForm(props: UseQuestionnaireFormProps): Question
     item: QuestionnaireItem,
     answer: QuestionnaireResponseItemAnswer[]
   ) => {
-    const currentItem = getResponseItemByContext(context, item);
-    if (currentItem) {
-      currentItem.answer = answer;
-      emitChange();
-    }
+    const path = findResponseItemPath(context, item);
+    if (!path) return;
+    
+    setState(...path as [any], 'answer', answer);
+    emitChange();
   };
 
   const onChangeSignature = (signature: Signature | undefined) => {
-     // We can modify state.questionnaireResponse directly as it is a proxy
-     const resp = state.questionnaireResponse;
-     if (!resp) return;
+    if (!state.questionnaireResponse) return;
 
-     if (signature) {
+    setState('questionnaireResponse', produce((resp) => {
+      if (!resp) return;
+      if (signature) {
         const ext = (resp.extension || []).filter((e) => e.url !== QUESTIONNAIRE_SIGNATURE_RESPONSE_URL);
         ext.push({ url: QUESTIONNAIRE_SIGNATURE_RESPONSE_URL, valueSignature: signature });
         resp.extension = ext;
-     } else {
+      } else {
         resp.extension = (resp.extension || []).filter((e) => e.url !== QUESTIONNAIRE_SIGNATURE_RESPONSE_URL);
-     }
-     emitChange();
+      }
+    }));
+    emitChange();
   };
 
 

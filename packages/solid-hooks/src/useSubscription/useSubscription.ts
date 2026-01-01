@@ -22,26 +22,29 @@ export type UseSubscriptionOptions = {
  *
  * @param criteria - The FHIR search criteria to subscribe to.
  * @param callback - The callback to call when a notification event `Bundle` is received.
- * @param options - Optional configuration options.
+ * @param options - Optional configuration options (can be an accessor for reactivity).
  */
 export function useSubscription(
   criteria: string | undefined | Accessor<string | undefined>,
   callback: (bundle: Bundle) => void,
-  options?: UseSubscriptionOptions
+  options?: UseSubscriptionOptions | Accessor<UseSubscriptionOptions | undefined>
 ): void {
   const medplum = useMedplum();
   const [emitter, setEmitter] = createSignal<SubscriptionEmitter>();
 
+  // Resolve options (call accessor if function, otherwise return directly)
+  const resolveOptions = () => typeof options === 'function' ? (options as Accessor<UseSubscriptionOptions | undefined>)() : options;
+
   // Deep comparison memo for subscription props to prevent unnecessary resubscriptions
-  const memoizedSubProps = createMemo(() => options?.subscriptionProps, undefined, {
+  const memoizedSubProps = createMemo(() => resolveOptions()?.subscriptionProps, undefined, {
     equals: (a, b) => deepEquals(a, b),
   });
 
   // Keep track of the latest callbacks without re-triggering the listener effect
-  const latest = { callback, options };
+  const latest = { callback, options: resolveOptions() };
   createEffect(() => {
     latest.callback = callback;
-    latest.options = options;
+    latest.options = resolveOptions();
   });
 
   let unsubTimer: any;
@@ -52,6 +55,7 @@ export function useSubscription(
     const c = typeof criteria === 'function' ? (criteria as Accessor<string | undefined>)() : criteria;
     const p = memoizedSubProps();
     const m = medplum;
+
 
     if (unsubTimer) {
       clearTimeout(unsubTimer);
@@ -90,8 +94,9 @@ export function useSubscription(
     const e = emitter();
     if (!e) return;
 
-    const emitterCallback = (event: SubscriptionEventMap['message']): void =>
+    const emitterCallback = (event: SubscriptionEventMap['message']): void => {
       untrack(() => latest.callback(event.payload));
+    };
     const onWebSocketOpen = (): void => untrack(() => latest.options?.onWebSocketOpen?.());
     const onWebSocketClose = (): void => untrack(() => latest.options?.onWebSocketClose?.());
     const onSubscriptionConnect = (event: SubscriptionEventMap['connect']): void =>
