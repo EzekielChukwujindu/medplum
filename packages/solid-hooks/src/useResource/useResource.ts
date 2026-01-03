@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { createEffect, createMemo, createSignal, untrack, type Accessor } from 'solid-js';
-import type { MedplumClient } from '@medplum/core';
-import { deepEquals, isReference, isResource, normalizeOperationOutcome } from '@medplum/core';
+import { createMemo, type Accessor } from 'solid-js';
+import { isReference, isResource, normalizeOperationOutcome } from '@medplum/core';
 import type { OperationOutcome, Reference, Resource } from '@medplum/fhirtypes';
+import { useQuery } from '@tanstack/solid-query';
 import { useMedplum } from '../MedplumProvider/MedplumProvider.context';
 
 /**
@@ -19,65 +19,62 @@ export function useResource<T extends Resource>(
 ): Accessor<T | undefined> {
   const medplum = useMedplum();
 
-  // Use a memo to ensure we track changes to the value (works for both accessors and static values)
-  const resolvedValue = createMemo(() => 
-    typeof value === 'function' ? (value as Accessor<any>)() : value
-  );
-  
-  const [resource, setResource] = createSignal<T | undefined>(getInitialResource(medplum, resolvedValue()));
+  // Normalize value to an accessor
+  const valueAccessor = createMemo(() => {
+    return typeof value === 'function' ? (value as Accessor<Reference<T> | Partial<T> | undefined>)() : value;
+  });
 
-  createEffect(() => {
-    // Access the memoized value to create dependency tracking
-    const val = resolvedValue();
-    
-    // Match React's logic: get initial resource first
-    const newValue = getInitialResource(medplum, val);
-    
-    // Only fetch if there's no initial value AND it's a Reference
-    if (!newValue && isReference(val)) {
-      medplum
-        .readReference(val as Reference<T>)
-        .then((r) => setResourceIfChanged(r as T))
-        .catch((err) => {
-          setResource(undefined);  // Clear resource on error
-          handleError(err);
-        });
-    } else {
-      // Use the initial value directly (partial resources, cached resources, etc.)
-      setResourceIfChanged(newValue as T);
+  /*
+   * We use useQuery to handle data fetching and caching.
+   * To maintain parity with the previous implementation (and React), we attempt to provide 'initialData'
+   * if the valid is already a resource or is a cached reference. This ensures synchronous rendering where possible.
+   */
+  const query = useQuery(() => {
+    const val = valueAccessor();
+    return {
+      queryKey: ['useResource', val],
+      queryFn: async () => {
+        if (!val) {
+          return null;
+        }
+        if (isResource(val)) {
+          return val as T;
+        }
+        if (isReference(val)) {
+          // readReference can return undefined? Unlikely for promise, but we should handle 404s via catch usually.
+          return medplum.readReference(val as Reference<T>);
+        }
+        return null; // Return null instead of undefined to satisfy TanStack Query
+      },
+      // initialData allows us to show data immediately if we have it (Resource passed in, or Reference in cache)
+      initialData: () => {
+        if (!val) {
+          return undefined; // No data
+        }
+        if (isResource(val)) {
+          return val as T;
+        }
+        if (isReference(val)) {
+          return medplum.getCachedReference(val as Reference<T>) as T | undefined;
+        }
+        return undefined;
+      },
+      // Stale time: 0 (default) ensures we consider data stale immediately, allowing refetching in background
+      // while showing initialData if available. This ensures we don't show outdated server data for long.
+    };
+  });
+
+  // Handle errors
+  createMemo(() => {
+    if (query.error && setOutcome) {
+      setOutcome(normalizeOperationOutcome(query.error));
     }
   });
 
-  function setResourceIfChanged(r: T): void {
-    if (!deepEquals(r, untrack(resource))) {
-      setResource(() => r);
-    }
-  }
-
-  function handleError(err: any): void {
-    if (setOutcome) {
-      setOutcome(normalizeOperationOutcome(err));
-    }
-  }
-
-  return resource;
-}
-
-/**
- * Returns the initial resource value based on the input value.
- */
-function getInitialResource<T extends Resource>(
-  medplum: MedplumClient,
-  value: Reference<T> | Partial<T> | undefined
-): T | undefined {
-  if (value) {
-    if (isResource(value)) {
-      return value as T;
-    }
-
-    if (isReference(value)) {
-      return medplum.getCachedReference(value as Reference<T>);
-    }
-  }
-  return undefined;
+  // Return the data accessor.
+  // We check for null (our "no data" value) and return undefined to the consumer to match signature.
+  return () => {
+    const d = query.data;
+    return d === null ? undefined : d;
+  };
 }

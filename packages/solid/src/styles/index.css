@@ -1,0 +1,57 @@
+/* 
+ * @medplum/solid - Main Stylesheet
+ * 
+ * This file integrates:
+ * 1. TailwindCSS v4 base styles
+ * 2. Custom medical-grade color palette from custom-styles
+ * 3. DaisyUI v5 component library
+ * 
+ * Layer System:
+ * - Layer 1 (Shell): Application background, navigation, chrome
+ * - Layer 2 (Container): Content containers with slight opacity for depth
+ * - Layer 3 (Content): Medical data displays - fully opaque for readability
+ */
+
+/* Import TailwindCSS base */
+@import "tailwindcss";
+
+/* Import custom palette and theme variables */
+@import "../custom-styles/tailwind.css";
+
+/* DaisyUI Integration - Tailwind v4 syntax */
+@plugin "daisyui" {
+  themes: ["light", "dark"];
+  logs: false;
+}
+
+/* Layer 1: Shell Styling */
+.layer-shell {
+  @apply bg-surface-base text-text-primary;
+}
+
+/* Layer 2: Container Styling */
+.layer-container {
+  @apply bg-surface-raised/95 backdrop-blur-sm rounded-lg shadow-sm;
+}
+
+/* Layer 3: Content (Medical Data) */
+.layer-content {
+  @apply bg-white text-text-primary;
+}
+
+/* Medical Status Utilities */
+.status-critical {
+  @apply text-red-700 bg-red-50 border-red-200;
+}
+
+.status-warning {
+  @apply text-orange-700 bg-orange-50 border-orange-200;
+}
+
+.status-success {
+  @apply text-green-700 bg-green-50 border-green-200;
+}
+
+.status-info {
+  @apply text-blue-700 bg-blue-50 border-blue-200;
+}

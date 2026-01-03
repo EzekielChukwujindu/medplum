@@ -3,7 +3,8 @@
 import type { QueryTypes, ResourceArray } from '@medplum/core';
 import { allOk, normalizeOperationOutcome } from '@medplum/core';
 import type { Bundle, ExtractResource, OperationOutcome, ResourceType } from '@medplum/fhirtypes';
-import { createEffect, createSignal, createMemo, type Accessor } from 'solid-js';
+import { createMemo, type Accessor } from 'solid-js';
+import { useQuery } from '@tanstack/solid-query';
 import { useMedplum } from '../MedplumProvider/MedplumProvider.context';
 import { useDebouncedValue } from '../useDebouncedValue/useDebouncedValue';
 
@@ -43,41 +44,53 @@ function useSearchImpl<K extends ResourceType, SearchReturnType>(
   options?: SearchOptions
 ): [Accessor<SearchReturnType | undefined>, Accessor<boolean>, Accessor<OperationOutcome | undefined>] {
   const medplum = useMedplum();
-  const [lastSearchKey, setLastSearchKey] = createSignal<string>();
-  const [loading, setLoading] = createSignal<boolean>(true);
-  const [result, setResult] = createSignal<SearchReturnType>();
-  const [outcome, setOutcome] = createSignal<OperationOutcome>();
 
   // Helpers to resolve accessors
   const getResourceType = () => (typeof resourceType === 'function' ? (resourceType as Accessor<K>)() : resourceType);
   const getQuery = () => (typeof query === 'function' ? (query as Accessor<QueryTypes | undefined>)() : query);
 
-  const searchKey = createMemo(() => medplum.fhirSearchUrl(getResourceType(), getQuery()).toString());
-  
-  // debouncedSearchKey is now an Accessor<string>
-  const [debouncedSearchKey] = useDebouncedValue(searchKey, options?.debounceMs ?? DEFAULT_DEBOUNCE_MS, {
-    leading: true,
-  });
+  // We debounce the *inputs* to the query key, rather than the query itself
+  // Only debounce if options.debounceMs > 0
+  const debounceMs = options?.debounceMs ?? DEFAULT_DEBOUNCE_MS;
 
-  createEffect(() => {
-    // Track the debounced key
-    const key = debouncedSearchKey();
-    if (key !== lastSearchKey()) {
-      setLastSearchKey(key);
-      setLoading(true);
-      medplum[searchFn](getResourceType(), getQuery())
-        .then((res) => {
-          setResult(() => res as SearchReturnType);
-          setOutcome(allOk);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setResult(undefined);
-          setOutcome(normalizeOperationOutcome(err));
-          setLoading(false);
-        });
+  // Create a memo for the inputs so we can debounce them together
+  const searchInputs = createMemo(() => ({
+    type: getResourceType(),
+    query: getQuery(),
+  }));
+
+  // Debounce the entire input object
+  const [debouncedInputs] = useDebouncedValue(searchInputs, debounceMs);
+
+  const queryResult = useQuery(() => ({
+    queryKey: ['useSearch', searchFn, debouncedInputs().type, debouncedInputs().query],
+    queryFn: async () => {
+      const inputs = debouncedInputs();
+      return medplum[searchFn](inputs.type, inputs.query) as unknown as Promise<SearchReturnType>;
+    },
+    // Keep previous data while fetching new data to prevent flickering
+    // queryFn: async () => {
+    //   const inputs = debouncedInputs();
+    //   return medplum[searchFn](inputs.type, inputs.query) as unknown as Promise<SearchReturnType>;
+    // },
+    retry: false,
+    // staleTime: 0 (default) ensures we always check for new data on mount/invalidate, 
+    // but relies on cache for immediate display if available.
+    // We removed the 5 minute staleTime to prevent users seeing old data.
+  }));
+
+  const data = () => queryResult.data;
+  const loading = () => queryResult.isLoading || queryResult.isFetching;
+  const error = () => {
+    if (queryResult.error) {
+      return normalizeOperationOutcome(queryResult.error);
     }
-  });
+    // If we have data and no error, return allOk to match previous behavior
+    if (queryResult.data) {
+      return allOk;
+    }
+    return undefined;
+  };
 
-  return [result, loading, outcome];
+  return [data, loading, error];
 }

@@ -58,6 +58,7 @@
     "@medplum/fhirtypes": "5.0.10",
     "@medplum/mock": "5.0.10",
     "@solidjs/testing-library": "^0.8.9",
+    "@tanstack/solid-query": "^5.90.19",
     "@testing-library/jest-dom": "6.9.1",
     "@solidjs/router": "^0.15.4",
     "@types/node": "22.19.3",
@@ -73,6 +74,7 @@
   },
   "peerDependencies": {
     "@medplum/core": "5.0.10",
+    "@tanstack/solid-query": "^5.90.19",
     "solid-js": "^1.0.0"
   },
   "engines": {

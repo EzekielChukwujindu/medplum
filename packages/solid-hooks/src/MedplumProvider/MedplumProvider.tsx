@@ -5,9 +5,12 @@ import { createEffect, createMemo, onCleanup, type JSX, type ParentProps } from 
 import { createStore } from 'solid-js/store';
 import { MedplumContext, type MedplumNavigateFunction } from './MedplumProvider.context';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
+
 export interface MedplumProviderProps extends ParentProps {
   readonly medplum: MedplumClient;
   readonly navigate?: MedplumNavigateFunction;
+  readonly queryClient?: QueryClient;
 }
 
 const EVENTS_TO_TRACK = [
@@ -18,11 +21,21 @@ const EVENTS_TO_TRACK = [
   'profileRefreshed',
 ] satisfies (keyof MedplumClientEventMap)[];
 
+const defaultQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
+
 /**
  * The MedplumProvider component provides Medplum context state.
  */
 export function MedplumProvider(props: MedplumProviderProps): JSX.Element {
   const navigate = props.navigate ?? defaultNavigate;
+  const queryClient = props.queryClient ?? defaultQueryClient;
 
   const [state, setState] = createStore({
     profile: props.medplum.getProfile(),
@@ -61,9 +74,11 @@ export function MedplumProvider(props: MedplumProviderProps): JSX.Element {
   }));
 
   return (
-    <MedplumContext.Provider value={medplumContext()}>
-      {props.children}
-    </MedplumContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <MedplumContext.Provider value={medplumContext()}>
+        {props.children}
+      </MedplumContext.Provider>
+    </QueryClientProvider>
   );
 }
 

@@ -1,0 +1,155 @@
+
+> @medplum/solid@5.0.10 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/ezeki/OneDrive/Documents/AA_New_Project/hxt-omni/medplum/packages/solid[39m
+
+ [32m✓[39m src/AddressDisplay/AddressDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32m✓[39m src/Alert/Alert.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m src/AddressInput/AddressInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+ [32m✓[39m src/AsyncAutocomplete/AsyncAutocomplete.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 241[2mms[22m[39m
+ [32m✓[39m src/AnnotationInput/AnnotationInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32m✓[39m src/AttachmentDisplay/AttachmentDisplay.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 50[2mms[22m[39m
+ [32m✓[39m src/AttachmentButton/AttachmentButton.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32m✓[39m src/AttachmentInput/AttachmentInput.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 105[2mms[22m[39m
+ [32m✓[39m src/Avatar/Avatar.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m src/auth/AuthenticationForm.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 414[2mms[22m[39m
+     [33m[2m✓[22m[39m Renders email and password fields [33m 312[2mms[22m[39m
+ [32m✓[39m src/auth/RegisterForm.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 380[2mms[22m[39m
+ [32m✓[39m src/BackboneElementDisplay/BackboneElementDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32m✓[39m src/Badge/Badge.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [32m✓[39m src/Breadcrumbs/Breadcrumbs.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [31m❯[39m src/BackboneElementInput/BackboneElementInput.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 2081[2mms[22m[39m
+[31m     [31m×[31m Renders[39m[33m 1059[2mms[22m[39m
+     [32m✓[39m Not implemented[32m 5[2mms[22m[39m
+[31m     [31m×[31m Renders with default value[39m[33m 1016[2mms[22m[39m
+ [32m✓[39m src/Button/Button.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 390[2mms[22m[39m
+ [32m✓[39m src/Checkbox/Checkbox.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+ [32m✓[39m src/Card/Card.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+ [32m✓[39m src/CheckboxFormSection/CheckboxFormSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+ [32m✓[39m src/CodeableConceptDisplay/CodeableConceptDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m src/AttachmentArrayInput/AttachmentArrayInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 113[2mms[22m[39m
+ [32m✓[39m src/auth/SignInForm.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 464[2mms[22m[39m
+     [33m[2m✓[22m[39m Renders initial sign-in form [33m 405[2mms[22m[39m
+ [32m✓[39m src/CodeInput/CodeInput.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 578[2mms[22m[39m
+     [33m[2m✓[22m[39m Renders [33m 388[2mms[22m[39m
+ [32m✓[39m src/CalendarInput/CalendarInput.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1254[2mms[22m[39m
+     [33m[2m✓[22m[39m Disabled days [33m 694[2mms[22m[39m
+     [33m[2m✓[22m[39m Click day [33m 362[2mms[22m[39m
+ [32m✓[39m src/AppShell/AppShell.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 574[2mms[22m[39m
+ [32m✓[39m src/CodeableConceptInput/CodeableConceptInput.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32m✓[39m src/CodingDisplay/CodingDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m src/CodingInput/CodingInput.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m src/ContactPointDisplay/ContactPointDisplay.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+ [32m✓[39m src/Collapse/Collapse.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 467[2mms[22m[39m
+ [32m✓[39m src/index.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/ContactPointInput/ContactPointInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+ [32m✓[39m src/ContactDetailDisplay/ContactDetailDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32m✓[39m src/Container/Container.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [31m❯[39m src/ContactDetailInput/ContactDetailInput.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 1136[2mms[22m[39m
+     [32m✓[39m Renders[32m 57[2mms[22m[39m
+     [32m✓[39m Change events[32m 9[2mms[22m[39m
+[31m     [31m×[31m Set blanks[39m[33m 1067[2mms[22m[39m
+ [32m✓[39m src/CopyButton/CopyButton.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 54[2mms[22m[39m
+ [32m✓[39m src/DateTimeInput/DateTimeInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32m✓[39m src/DescriptionList/DescriptionList.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+ [32m✓[39m src/DiagnosticReportDisplay/DiagnosticReportDisplay.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 478[2mms[22m[39m
+ [32m✓[39m src/Divider/Divider.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 47[2mms[22m[39m
+ [32m✓[39m src/Dialog/Dialog.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 433[2mms[22m[39m
+     [33m[2m✓[22m[39m Renders when open [33m 367[2mms[22m[39m
+ [32m✓[39m src/Document/Document.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 58[2mms[22m[39m
+ [32m✓[39m src/Drawer/Drawer.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+ [32m✓[39m src/Dropdown/Dropdown.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+ [31m❯[39m src/DefaultResourceTimeline/DefaultResourceTimeline.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 3120[2mms[22m[39m
+[31m     [31m×[31m Renders reference[39m[33m 1075[2mms[22m[39m
+[31m     [31m×[31m Renders resource[39m[33m 1019[2mms[22m[39m
+[31m     [31m×[31m Renders timeline container[39m[33m 1023[2mms[22m[39m
+ [32m✓[39m src/ElementsInput/ElementsInput.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+ [32m✓[39m src/Form/Form.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 200[2mms[22m[39m
+ [32m✓[39m src/ExtensionDisplay/ExtensionDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+ [31m❯[39m src/ExtensionInput/ExtensionInput.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 1130[2mms[22m[39m
+     [32m✓[39m Renders[32m 72[2mms[22m[39m
+     [32m✓[39m Renders undefined value[32m 7[2mms[22m[39m
+[31m     [31m×[31m Set value[39m[33m 1049[2mms[22m[39m
+ [32m✓[39m src/FhirPathDisplay/FhirPathDisplay.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 77[2mms[22m[39m
+ [32m✓[39m src/ErrorBoundary/ErrorBoundary.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32m✓[39m src/FormSection/FormSection.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m src/GoogleButton/GoogleButton.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 164[2mms[22m[39m
+ [32m✓[39m src/HumanNameInput/HumanNameInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+ [31m❯[39m src/EncounterTimeline/EncounterTimeline.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 3111[2mms[22m[39m
+[31m     [31m×[31m Renders reference[39m[33m 1056[2mms[22m[39m
+[31m     [31m×[31m Renders resource[39m[33m 1036[2mms[22m[39m
+[31m     [31m×[31m Renders timeline container[39m[33m 1016[2mms[22m[39m
+ [32m✓[39m src/HumanNameDisplay/HumanNameDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+ [32m✓[39m src/IdentifierDisplay/IdentifierDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+ [32m✓[39m src/IdentifierInput/IdentifierInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+ [32m✓[39m src/LinkTabs/LinkTabs.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 644[2mms[22m[39m
+     [33m[2m✓[22m[39m renders tabs correctly [33m 381[2mms[22m[39m
+ [32m✓[39m src/Loading/Loading.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m src/Logo/Logo.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m src/MoneyDisplay/MoneyDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 93[2mms[22m[39m
+ [32m✓[39m src/Modal/Modal.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+ [32m✓[39m src/MedplumLink/MedplumLink.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 477[2mms[22m[39m
+ [32m✓[39m src/MoneyInput/MoneyInput.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 92[2mms[22m[39m
+ [32m✓[39m src/NativeSelect/NativeSelect.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+ [32m✓[39m src/Pagination/Pagination.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+ [32m✓[39m src/Panel/Panel.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+ [32m✓[39m src/PeriodInput/PeriodInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 126[2mms[22m[39m
+ [32m✓[39m src/PatientHeader/PatientHeader.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 148[2mms[22m[39m
+ [32m✓[39m src/NotificationIcon/NotificationIcon.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 311[2mms[22m[39m
+ [32m✓[39m src/Progress/Progress.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 477[2mms[22m[39m
+     [33m[2m✓[22m[39m Has progressbar role [33m 384[2mms[22m[39m
+ [32m✓[39m src/PatientSummary/PatientSummary.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 623[2mms[22m[39m
+ [32m✓[39m src/Popover/Popover.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 40[2mms[22m[39m
+ [32m✓[39m src/QuantityDisplay/QuantityDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+ [32m✓[39m src/QuantityInput/QuantityInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 78[2mms[22m[39m
+ [32m✓[39m src/PlanDefinitionBuilder/PlanDefinitionBuilder.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 398[2mms[22m[39m
+ [32m✓[39m src/providers/SolidMedplumProvider.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+ [32m✓[39m src/providers/ThemeProvider.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m src/RangeDisplay/RangeDisplay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [32m✓[39m src/RatioDisplay/RatioDisplay.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m src/RangeInput/RangeInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 126[2mms[22m[39m
+ [32m✓[39m src/RatioInput/RatioInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 113[2mms[22m[39m
+ [32m✓[39m src/QuestionnaireBuilder/QuestionnaireBuilder.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 199[2mms[22m[39m
+ [32m✓[39m src/QuestionnaireForm/QuestionnaireForm.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 167[2mms[22m[39m
+ [32m✓[39m src/ReferenceDisplay/ReferenceDisplay.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 314[2mms[22m[39m
+ [32m✓[39m src/ReferenceInput/ReferenceInput.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 122[2mms[22m[39m
+ [32m✓[39m src/ResourceBadge/ResourceBadge.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 368[2mms[22m[39m
+ [32m✓[39m src/ResourceHistoryTable/ResourceHistoryTable.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 292[2mms[22m[39m
+ [32m✓[39m src/ResourceDiffTable/ResourceDiffTable.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 186[2mms[22m[39m
+ [32m✓[39m src/ResourceAvatar/ResourceAvatar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 335[2mms[22m[39m
+ [32m✓[39m src/ResourceInput/ResourceInput.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32m✓[39m src/ResourceName/ResourceName.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 301[2mms[22m[39m
+ [32m✓[39m src/ResourcePropertyDisplay/ResourcePropertyDisplay.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 118[2mms[22m[39m
+ [32m✓[39m src/ResourceTable/ResourceTable.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32m✓[39m src/ResourceTypeInput/ResourceTypeInput.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 366[2mms[22m[39m
+     [33m[2m✓[22m[39m Renders disabled input [33m 306[2mms[22m[39m
+ [32m✓[39m src/SearchResults/SearchResults.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 104[2mms[22m[39m
+ [32m✓[39m src/Select/Select.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 124[2mms[22m[39m
+ [32m✓[39m src/SearchControl/SearchControl.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 190[2mms[22m[39m
+ [32m✓[39m src/Skeleton/Skeleton.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+ [32m✓[39m src/Scheduler/Scheduler.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 786[2mms[22m[39m
+ [32m✓[39m src/Slider/Slider.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 47[2mms[22m[39m
+ [32m✓[39m src/SmartAppLaunchLink/SmartAppLaunchLink.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 180[2mms[22m[39m
+ [32m✓[39m src/SignatureInput/SignatureInput.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+ [32m✓[39m src/Stats/Stats.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+ [32m✓[39m src/StatusBadge/StatusBadge.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+ [32m✓[39m src/Table/Table.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 108[2mms[22m[39m
+ [32m✓[39m src/Switch/Switch.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 156[2mms[22m[39m
+ [32m✓[39m src/Steps/Steps.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+ [32m✓[39m src/Tabs/Tabs.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+ [32m✓[39m src/Textarea/Textarea.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 97[2mms[22m[39m
+ [32m✓[39m src/TextInput/TextInput.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m src/Toggle/Toggle.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m src/Timeline/Timeline.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 93[2mms[22m[39m
+ [32m✓[39m src/Tooltip/Tooltip.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+ [32m✓[39m src/ValueSetAutocomplete/ValueSetAutocomplete.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m src/TimingInput/TimingInput.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 261[2mms[22m[39m
+ [32m✓[39m src/Chat/BaseChat/BaseChat.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 162[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m5 failed[39m[22m[2m | [22m[1m[32m113 passed[39m[22m[90m (118)[39m
+[2m      Tests [22m [1m[31m10 failed[39m[22m[2m | [22m[1m[32m553 passed[39m[22m[90m (563)[39m
+[2m   Start at [22m 20:01:19
+[2m   Duration [22m 119.92s[2m (transform 104.80s, setup 229.72s, import 207.02s, tests 29.24s, environment 283.12s)[22m
+

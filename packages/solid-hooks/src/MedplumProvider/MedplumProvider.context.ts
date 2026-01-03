@@ -45,11 +45,14 @@ export function useMedplumNavigate(): MedplumNavigateFunction {
   return useMedplumContext().navigate;
 }
 
+import type { Accessor } from 'solid-js';
+
 /**
  * Returns the current Medplum user profile (if signed in).
  * This is a shortcut for useMedplumContext().profile.
- * @returns The current user profile.
+ * @returns Accessor for the current user profile.
  */
-export function useMedplumProfile(): ProfileResource | undefined {
-  return useMedplumContext().profile;
+export function useMedplumProfile(): Accessor<ProfileResource | undefined> {
+  const context = useMedplumContext();
+  return () => context.profile;
 }
